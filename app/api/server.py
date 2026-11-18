@@ -680,6 +680,16 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(raw)
 
+    def _file_bytes(self, raw, ctype, code=200):
+        data = raw.encode("utf-8") if isinstance(raw, str) else raw
+        self.send_response(code)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(data)))
+        self._cors()
+        self.end_headers()
+        self.wfile.write(data)
+        return None
+
     def _file(self, path, code=200):
         try:
             with open(path, "rb") as fh:
@@ -798,6 +808,30 @@ class Handler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(data)
                 return None
+            if u.path in ("/api/email-status",):
+                from app.services import mailer as mailer_mod
+                d = mailer_mod.diagnose()
+                return self._json(d, 200 if d["sender"] != "none" else 503)
+            if u.path in ("/status", "/health", "/email-status"):
+                from app.services import mailer as mailer_mod
+                d = mailer_mod.diagnose()
+                ok = d["sender"] != "none"
+                rows = "".join(f"<tr><td>{k}</td><td><b>{v}</b></td></tr>" for k, v in d.items())
+                html = ("<!doctype html><meta charset='utf-8'><title>Email status</title>"
+                        "<style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;"
+                        "max-width:640px;margin:40px auto;padding:0 18px;color:#0B0B0D}"
+                        "td{padding:6px 12px 6px 0;border-bottom:1px solid #e5e8ec;vertical-align:top}"
+                        ".ok{background:#e7f7ee;color:#0a7d43;padding:10px 14px;border-radius:10px}"
+                        ".bad{background:#fdecec;color:#b42318;padding:10px 14px;border-radius:10px}"
+                        "code{background:#f6f8fa;padding:2px 5px;border-radius:4px}</style>"
+                        f"<h2>Bimmer House Calls — email status</h2>"
+                        f"<div class='{'ok' if ok else 'bad'}'>"
+                        f"{'Email is configured and can send.' if ok else 'Email is NOT configured — nothing will send.'}"
+                        "</div><table style='margin-top:18px'>" + rows + "</table>"
+                        "<p style='color:#5b6470;font-size:13px;margin-top:20px'>"
+                        "To fix: add <code>BHC_SMTP_USER</code> and <code>BHC_SMTP_PASS</code> "
+                        "(a Gmail app password) in Render → Environment, then redeploy.</p>")
+                return self._file_bytes(html, "text/html; charset=utf-8", 200 if ok else 503)
             if u.path in ("/admin", "/admin/"):
                 return self._file(os.path.join(STATIC, "admin.html"))
             if u.path in ("/book", "/book-now", "/schedule", "/booking", "/booking/"):

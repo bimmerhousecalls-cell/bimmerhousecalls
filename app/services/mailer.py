@@ -45,6 +45,8 @@ def _smtp_send(to: str, subject: str, body: str) -> bool:
     user, pwd = os.environ.get("BHC_SMTP_USER"), os.environ.get("BHC_SMTP_PASS")
     if not (user and pwd):
         return False
+    # Google shows the app password as 4 groups of 4 — spaces break the login
+    user, pwd = user.strip(), pwd.replace(" ", "").strip()
     import smtplib
     from email.message import EmailMessage
     cat = pricing.load_catalog()
@@ -55,11 +57,19 @@ def _smtp_send(to: str, subject: str, body: str) -> bool:
     # a plain-text part, then the branded HTML version
     msg.set_content(re.sub(r"<[^>]+>", "", body))
     msg.add_alternative(body if "<" in body else f"<pre>{body}</pre>", subtype="html")
-    with smtplib.SMTP("smtp.gmail.com", 587, timeout=30) as s:
-        s.starttls()
-        s.login(user, pwd)
-        s.send_message(msg)
-    return True
+    try:
+        with smtplib.SMTP("smtp.gmail.com", 587, timeout=30) as s:
+            s.starttls()
+            s.login(user, pwd)
+            s.send_message(msg)
+        return True
+    except (smtplib.SMTPConnectError, smtplib.SMTPServerDisconnected, OSError):
+        # some hosts block 587 — 465 + SSL usually works
+        import ssl
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=30, context=ssl.create_default_context()) as s:
+            s.login(user, pwd)
+            s.send_message(msg)
+        return True
 
 
 def send_now(to: str, subject: str, body: str) -> str:
@@ -76,18 +86,29 @@ def diagnose() -> dict:
     user = os.environ.get("BHC_SMTP_USER")
     pwd = os.environ.get("BHC_SMTP_PASS")
     out = {"smtpUser": bool(user), "smtpPass": bool(pwd), "connector": False,
-           "sender": "none", "problem": ""}
+           "sender": "none", "problem": "",
+           "userSeen": (user or "")[:3] + "…" if user else "(empty)",
+           "passLength": len(pwd or ""),
+           "passHasSpaces": bool(pwd and " " in pwd),
+           "passLooksLikeNormalPassword": bool(pwd and len(pwd) != 16)}
     try:
         from app.services.gmail_bridge import send as _b  # noqa: F401
         out["connector"] = True
     except Exception:
         pass
     if user and pwd:
+        pwd_clean = pwd.replace(" ", "").strip()
         try:
             import smtplib
-            with smtplib.SMTP("smtp.gmail.com", 587, timeout=20) as s:
-                s.starttls()
-                s.login(user, pwd)
+            try:
+                with smtplib.SMTP("smtp.gmail.com", 587, timeout=20) as s:
+                    s.starttls()
+                    s.login(user.strip(), pwd_clean)
+            except (smtplib.SMTPConnectError, smtplib.SMTPServerDisconnected, OSError):
+                import ssl
+                with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=20,
+                                      context=ssl.create_default_context()) as s:
+                    s.login(user.strip(), pwd_clean)
             out["sender"] = "smtp"
         except Exception as exc:  # noqa: BLE001
             out["problem"] = f"SMTP login failed: {exc}"
