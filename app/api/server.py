@@ -1003,8 +1003,18 @@ class Handler(BaseHTTPRequestHandler):
                     counts = {r["status"]: r["n"] for r in dbmod.rows(conn.execute(
                         "SELECT status, COUNT(*) n FROM emails GROUP BY status"))}
                 d = mailer_mod.diagnose()
+                probe = ""
+                if d["sender"] != "none":
+                    try:
+                        mailer_mod.send_now(d.get("fromEmail") or
+                                            catalog()["shop"].get("email", ""),
+                                            "Bimmer House Calls — send check",
+                                            "<p>Send check from /api/diag.</p>")
+                        probe = "send OK"
+                    except Exception as exc:  # noqa: BLE001
+                        probe = f"{type(exc).__name__}: {exc}"
                 return self._json({"sender": d["sender"], "problem": d["problem"],
-                                   "counts": counts, "recent": rows})
+                                   "probe": probe, "counts": counts, "recent": rows})
             if u.path in ("/api/env-check",):
                 # which BHC_ variables this process can actually see (names only)
                 names = sorted(k for k in os.environ if k.startswith("BHC_"))

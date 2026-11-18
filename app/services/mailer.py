@@ -49,10 +49,15 @@ def _smtp_send(to: str, subject: str, body: str) -> bool:
     Needs BHC_SMTP_USER (the Gmail address) and BHC_SMTP_PASS (a 16-character
     Gmail app password).
     """
-    user, pwd = os.environ.get("BHC_SMTP_USER"), os.environ.get("BHC_SMTP_PASS")
-    if not (user and pwd):
+    user = (os.environ.get("BHC_SMTP_USER") or "").strip()
+    pwd = (os.environ.get("BHC_SMTP_PASS") or "").replace(" ", "").strip()
+    refresh_token = os.environ.get("BHC_GOOGLE_REFRESH_TOKEN", "")
+    if not user and refresh_token:
+        # the Gmail API path only needs the account the token belongs to
+        user = (os.environ.get("BHC_MAIL_FROM") or os.environ.get("BHC_OWNER_EMAIL")
+                or pricing.load_catalog()["shop"].get("email") or "").strip()
+    if not user:
         return False
-    user, pwd = user.strip(), pwd.replace(" ", "").strip()
     import base64
     import json as jsonlib
     import urllib.error
@@ -73,7 +78,7 @@ def _smtp_send(to: str, subject: str, body: str) -> bool:
     raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
 
     # OAuth refresh token first (the reliable path), then the app password
-    refresh = os.environ.get("BHC_GOOGLE_REFRESH_TOKEN")
+    refresh = refresh_token
     if refresh:
         data = urllib.parse.urlencode({"client_id": os.environ.get("BHC_GOOGLE_CLIENT_ID", ""),
                                        "client_secret": os.environ.get("BHC_GOOGLE_CLIENT_SECRET", ""),
@@ -96,6 +101,9 @@ def _smtp_send(to: str, subject: str, body: str) -> bool:
             headers={"Authorization": f"Bearer {access}", "Content-Type": "application/json"})
         with urllib.request.urlopen(req, timeout=45) as r:
             return r.status == 200
+    # no refresh token: fall through to SMTP only when a password exists
+    if not pwd:
+        raise RuntimeError("No Gmail refresh token and no app password — cannot send.")
 
     # Last resort: plain SMTP for hosts that do allow it
     import smtplib
@@ -118,8 +126,11 @@ def send_now(to: str, subject: str, body: str) -> str:
     """Try the connector, then SMTP; report which path worked."""
     if _connector_send(to, subject, body):
         return "gmail-connector"
-    if _smtp_send(to, subject, body):
-        return "smtp"
+    try:
+        if _smtp_send(to, subject, body):
+            return "gmail-api"
+    except Exception as exc:  # noqa: BLE001
+        raise RuntimeError(f"Gmail send failed: {type(exc).__name__}: {exc}") from None
     return "queued"
 
 
