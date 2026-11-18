@@ -80,8 +80,23 @@ def _smtp_send(to: str, subject: str, body: str) -> bool:
     # OAuth refresh token first (the reliable path), then the app password
     refresh = refresh_token
     if refresh:
-        data = urllib.parse.urlencode({"client_id": os.environ.get("BHC_GOOGLE_CLIENT_ID", ""),
-                                       "client_secret": os.environ.get("BHC_GOOGLE_CLIENT_SECRET", ""),
+        # a refresh token issued to an installed app carries its own client id/secret
+        cid = os.environ.get("BHC_GOOGLE_CLIENT_ID", "").strip()
+        csec = os.environ.get("BHC_GOOGLE_CLIENT_SECRET", "").strip()
+        tok_json = refresh[5:] if refresh.startswith("json:") else ""
+        if tok_json and not cid:
+            try:
+                blob = jsonlib.loads(base64.urlsafe_b64decode(tok_json + "===").decode())
+                cid = blob.get("client_id", "")
+                csec = blob.get("client_secret", "")
+            except Exception:  # noqa: BLE001
+                pass
+        if not cid:
+            raise RuntimeError(
+                "The Gmail refresh token has no client ID with it. Either set "
+                "BHC_GOOGLE_CLIENT_ID and BHC_GOOGLE_CLIENT_SECRET on the server, or paste "
+                "the packed token the /oauth/callback page gives you.")
+        data = urllib.parse.urlencode({"client_id": cid, "client_secret": csec,
                                        "refresh_token": refresh,
                                        "grant_type": "refresh_token"}).encode()
         req = urllib.request.Request("https://oauth2.googleapis.com/token", data=data)
@@ -147,7 +162,15 @@ def exchange_code(code: str) -> dict:
         "grant_type": "authorization_code"}).encode()
     req = urllib.request.Request("https://oauth2.googleapis.com/token", data=data)
     with urllib.request.urlopen(req, timeout=30) as r:
-        return jsonlib.loads(r.read())
+        tok = jsonlib.loads(r.read())
+    # pack the client id and secret into the token so it is the only variable needed
+    if tok.get("refresh_token"):
+        import base64 as b64
+        packed = jsonlib.dumps({"refresh_token": tok["refresh_token"],
+                                "client_id": os.environ.get("BHC_GOOGLE_CLIENT_ID", ""),
+                                "client_secret": os.environ.get("BHC_GOOGLE_CLIENT_SECRET", "")})
+        tok["packed_token"] = "json:" + b64.urlsafe_b64encode(packed.encode()).decode().rstrip("=")
+    return tok
 
 
 def diagnose() -> dict:

@@ -972,8 +972,10 @@ class Handler(BaseHTTPRequestHandler):
                         "word-break:break-all;font-size:13px;margin:10px 0}</style>"
                         "<h2>Gmail connected</h2>"
                         + ("<p>Copy this into Render → Environment as "
-                           "<b>BHC_GOOGLE_REFRESH_TOKEN</b>:</p><code>" + rt + "</code>"
-                           "<p>Then delete the temporary OAuth variables and redeploy.</p>"
+                           "<b>BHC_GOOGLE_REFRESH_TOKEN</b>:</p><code>"
+                           + (tok.get("packed_token") or rt) + "</code>"
+                           "<p>This one value carries the client ID with it, so you can "
+                           "delete the other OAuth variables afterwards.</p>"
                            if rt else
                            "<p>No refresh token came back. Remove the app's access at "
                            "<a href='https://myaccount.google.com/permissions'>myaccount.google.com/permissions</a> "
