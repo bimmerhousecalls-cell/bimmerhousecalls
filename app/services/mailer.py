@@ -41,34 +41,75 @@ def _connector_send(to: str, subject: str, body: str) -> bool:
 
 
 def _smtp_send(to: str, subject: str, body: str) -> bool:
-    """Optional direct SMTP. Needs BHC_SMTP_USER + BHC_SMTP_PASS (app password)."""
+    """Send through Gmail over HTTPS (port 443), which no host blocks.
+
+    Render's free tier has no outbound SMTP, so ports 587/465 fail with
+    "Network is unreachable". Gmail's REST API goes over normal HTTPS instead.
+    Needs BHC_SMTP_USER (the Gmail address) and BHC_SMTP_PASS (a 16-character
+    Gmail app password).
+    """
     user, pwd = os.environ.get("BHC_SMTP_USER"), os.environ.get("BHC_SMTP_PASS")
     if not (user and pwd):
         return False
-    # Google shows the app password as 4 groups of 4 — spaces break the login
     user, pwd = user.strip(), pwd.replace(" ", "").strip()
-    import smtplib
+    import base64
+    import json as jsonlib
+    import urllib.error
     from email.message import EmailMessage
+    import urllib.parse
+    import urllib.request
+
     cat = pricing.load_catalog()
+    shop_name = cat["shop"].get("name", "Bimmer House Calls")
+    plain = re.sub(r"<[^>]+>", "", body)
+    html = body if "<" in body else f"<pre>{body}</pre>"
     msg = EmailMessage()
-    msg["From"] = f"{cat['shop'].get('name', 'Bimmer House Calls')} <{user}>"
+    msg["From"] = f"{shop_name} <{user}>"
     msg["To"] = to
     msg["Subject"] = subject
-    # a plain-text part, then the branded HTML version
-    msg.set_content(re.sub(r"<[^>]+>", "", body))
-    msg.add_alternative(body if "<" in body else f"<pre>{body}</pre>", subtype="html")
+    msg.set_content(plain)
+    msg.add_alternative(html, subtype="html")
+    raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
+
+    # OAuth refresh token first (the reliable path), then the app password
+    refresh = os.environ.get("BHC_GOOGLE_REFRESH_TOKEN")
+    if refresh:
+        data = urllib.parse.urlencode({"client_id": os.environ.get("BHC_GOOGLE_CLIENT_ID", ""),
+                                       "client_secret": os.environ.get("BHC_GOOGLE_CLIENT_SECRET", ""),
+                                       "refresh_token": refresh,
+                                       "grant_type": "refresh_token"}).encode()
+        req = urllib.request.Request("https://oauth2.googleapis.com/token", data=data)
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                access = jsonlib.loads(r.read())["access_token"]
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode(errors="ignore")[:200]
+            if "invalid_grant" in detail:
+                raise RuntimeError(
+                    "Gmail refresh token is expired or revoked. Re-run the Google auth step "
+                    "and put the new BHC_GOOGLE_REFRESH_TOKEN in the environment.") from None
+            raise RuntimeError(f"Google token request failed: {detail}") from None
+        req = urllib.request.Request(
+            f"https://gmail.googleapis.com/gmail/v1/users/{urllib.parse.quote(user)}/messages/send",
+            data=jsonlib.dumps({"raw": raw}).encode(),
+            headers={"Authorization": f"Bearer {access}", "Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=45) as r:
+            return r.status == 200
+
+    # Last resort: plain SMTP for hosts that do allow it
+    import smtplib
     try:
-        with smtplib.SMTP("smtp.gmail.com", 587, timeout=30) as s:
-            s.starttls()
-            s.login(user, pwd)
-            s.send_message(msg)
+        with smtplib.SMTP("smtp.gmail.com", 587, timeout=20) as s2:
+            s2.starttls()
+            s2.login(user, pwd)
+            s2.send_message(msg)
         return True
     except (smtplib.SMTPConnectError, smtplib.SMTPServerDisconnected, OSError):
-        # some hosts block 587 — 465 + SSL usually works
         import ssl
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=30, context=ssl.create_default_context()) as s:
-            s.login(user, pwd)
-            s.send_message(msg)
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=20,
+                              context=ssl.create_default_context()) as s2:
+            s2.login(user, pwd)
+            s2.send_message(msg)
         return True
 
 
@@ -81,39 +122,66 @@ def send_now(to: str, subject: str, body: str) -> str:
     return "queued"
 
 
+def exchange_code(code: str) -> dict:
+    """Trade Google's one-time code for a refresh token (used by /oauth/callback)."""
+    import json as jsonlib
+    import urllib.parse
+    import urllib.request
+    data = urllib.parse.urlencode({
+        "code": code,
+        "client_id": os.environ.get("BHC_GOOGLE_CLIENT_ID", ""),
+        "client_secret": os.environ.get("BHC_GOOGLE_CLIENT_SECRET", ""),
+        "redirect_uri": os.environ.get("BHC_OAUTH_REDIRECT", ""),
+        "grant_type": "authorization_code"}).encode()
+    req = urllib.request.Request("https://oauth2.googleapis.com/token", data=data)
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return jsonlib.loads(r.read())
+
+
 def diagnose() -> dict:
     """Why did nothing send? Report each path honestly."""
     user = os.environ.get("BHC_SMTP_USER")
     pwd = os.environ.get("BHC_SMTP_PASS")
+    refresh = os.environ.get("BHC_GOOGLE_REFRESH_TOKEN")
     out = {"smtpUser": bool(user), "smtpPass": bool(pwd), "connector": False,
-           "sender": "none", "problem": "",
+           "gmailApi": bool(refresh), "sender": "none", "problem": "",
            "userSeen": (user or "")[:3] + "…" if user else "(empty)",
-           "passLength": len(pwd or ""),
+           "passLength": len((pwd or "").replace(" ", "")),
            "passHasSpaces": bool(pwd and " " in pwd),
-           "passLooksLikeNormalPassword": bool(pwd and len(pwd) != 16)}
+           "passLooksLikeNormalPassword": bool(pwd and len(pwd.replace(" ", "")) != 16)}
     try:
         from app.services.gmail_bridge import send as _b  # noqa: F401
         out["connector"] = True
     except Exception:
         pass
-    if user and pwd:
-        pwd_clean = pwd.replace(" ", "").strip()
-        try:
-            import smtplib
-            try:
-                with smtplib.SMTP("smtp.gmail.com", 587, timeout=20) as s:
-                    s.starttls()
-                    s.login(user.strip(), pwd_clean)
-            except (smtplib.SMTPConnectError, smtplib.SMTPServerDisconnected, OSError):
-                import ssl
-                with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=20,
-                                      context=ssl.create_default_context()) as s:
-                    s.login(user.strip(), pwd_clean)
-            out["sender"] = "smtp"
-        except Exception as exc:  # noqa: BLE001
-            out["problem"] = f"SMTP login failed: {exc}"
-    elif out["connector"]:
+    if refresh:
+        out["sender"] = "gmail-api"
+        return out
+    if out["connector"]:
         out["sender"] = "connector"
+        return out
+    if user and pwd:
+        # Can this host reach Gmail at all? Render's free tier cannot use SMTP.
+        import socket
+        reachable = False
+        try:
+            socket.create_connection(("smtp.gmail.com", 587), timeout=8).close()
+            reachable = True
+        except Exception:  # noqa: BLE001
+            pass
+        if not reachable:
+            out["problem"] = ("This host blocks outbound SMTP (ports 587/465), so a Gmail app "
+                              "password cannot send from here. Use a Gmail refresh token "
+                              "(BHC_GOOGLE_REFRESH_TOKEN) or a paid instance.")
+        else:
+            try:
+                import smtplib
+                with smtplib.SMTP("smtp.gmail.com", 587, timeout=20) as s2:
+                    s2.starttls()
+                    s2.login(user.strip(), pwd.replace(" ", "").strip())
+                out["sender"] = "smtp"
+            except Exception as exc:  # noqa: BLE001
+                out["problem"] = f"SMTP login failed: {exc}"
     else:
         out["problem"] = ("No sender configured. Set BHC_SMTP_USER and BHC_SMTP_PASS "
                           "(a Gmail app password) on the server.")

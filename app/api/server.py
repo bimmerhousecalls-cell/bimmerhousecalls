@@ -808,6 +808,56 @@ class Handler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(data)
                 return None
+            if u.path in ("/oauth/start", "/oauth/connect"):
+                import urllib.parse as _up
+                cid = os.environ.get("BHC_GOOGLE_CLIENT_ID", "")
+                red = os.environ.get("BHC_OAUTH_REDIRECT", "")
+                if not (cid and red):
+                    return self._file_bytes("<h3>Set BHC_GOOGLE_CLIENT_ID and BHC_OAUTH_REDIRECT first.</h3>",
+                                            "text/html; charset=utf-8", 400)
+                url = ("https://accounts.google.com/o/oauth2/v2/auth?"
+                       + _up.urlencode({"client_id": cid, "redirect_uri": red,
+                                        "response_type": "code",
+                                        "scope": "https://www.googleapis.com/auth/gmail.send",
+                                        "access_type": "offline", "prompt": "consent"}))
+                self.send_response(302)
+                self.send_header("Location", url)
+                self.end_headers()
+                return None
+            if u.path in ("/oauth/callback", "/oauth/connect-callback"):
+                from app.services import mailer as mailer_mod
+                q = parse_qs(urlparse(self.path).query)
+                code = (q.get("code") or [""])[0]
+                if not code:
+                    return self._file_bytes("<h3>No code returned.</h3><p>"
+                                            + (q.get("error") or ["unknown"])[0] + "</p>",
+                                            "text/html; charset=utf-8", 400)
+                try:
+                    tok = mailer_mod.exchange_code(code)
+                except Exception as exc:  # noqa: BLE001
+                    return self._file_bytes(f"<h3>Exchange failed</h3><pre>{exc}</pre>",
+                                            "text/html; charset=utf-8", 400)
+                rt = tok.get("refresh_token", "")
+                page = ("<!doctype html><meta charset='utf-8'><title>Gmail connected</title>"
+                        "<style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;"
+                        "max-width:720px;margin:40px auto;padding:0 18px;color:#0B0B0D}"
+                        "code{display:block;background:#f6f8fa;padding:12px;border-radius:8px;"
+                        "word-break:break-all;font-size:13px;margin:10px 0}</style>"
+                        "<h2>Gmail connected</h2>"
+                        + ("<p>Copy this into Render → Environment as "
+                           "<b>BHC_GOOGLE_REFRESH_TOKEN</b>:</p><code>" + rt + "</code>"
+                           "<p>Then delete the temporary OAuth variables and redeploy.</p>"
+                           if rt else
+                           "<p>No refresh token came back. Remove the app's access at "
+                           "<a href='https://myaccount.google.com/permissions'>myaccount.google.com/permissions</a> "
+                           "and try again.</p>"))
+                return self._file_bytes(page, "text/html; charset=utf-8")
+            if u.path in ("/api/env-check",):
+                # which BHC_ variables this process can actually see (names only)
+                names = sorted(k for k in os.environ if k.startswith("BHC_"))
+                return self._json({"count": len(names), "names": names,
+                                   "pythonpath": os.environ.get("PYTHONPATH", ""),
+                                   "cwd": os.getcwd()}, 200)
             if u.path in ("/api/email-status",):
                 from app.services import mailer as mailer_mod
                 d = mailer_mod.diagnose()
