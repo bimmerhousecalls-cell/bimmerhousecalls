@@ -598,6 +598,14 @@ def handle_admin(action: str, body: dict) -> dict:
             conn.execute("UPDATE invoices SET status=CASE WHEN status='draft' THEN 'open' ELSE status END WHERE id=?",
                          (inv["id"],))
             return {"sent": True, "number": inv["number"], "to": c["email"]}
+        if action == "email.flush":
+            from app.services import mailer as mailer_mod
+            return mailer_mod.drain(limit=int((body or {}).get("limit", 50)))
+        if action == "email.outbox":
+            rows = dbmod.rows(conn.execute(
+                "SELECT id, to_email, template, status, error, scheduled_for, created_at"
+                " FROM emails ORDER BY id DESC LIMIT 40"))
+            return {"emails": rows}
         if action == "email.diagnose":
             from app.services import mailer as mailer_mod
             return mailer_mod.diagnose()

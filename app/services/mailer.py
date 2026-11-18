@@ -19,6 +19,7 @@ import json
 import os
 import re
 import sys
+import threading
 from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -186,6 +187,32 @@ def diagnose() -> dict:
         out["problem"] = ("No sender configured. Set BHC_SMTP_USER and BHC_SMTP_PASS "
                           "(a Gmail app password) on the server.")
     return out
+
+
+_pending_flush = threading.Timer(0, lambda: None)
+
+
+def schedule_flush(delay: float = 8.0) -> None:
+    """Send what is queued a few seconds from now, without blocking the request.
+
+    Free hosts have no cron, so the app flushes its own outbox. Safe to call on
+    every queue write: only the newest timer is kept.
+    """
+    global _pending_flush
+    try:
+        _pending_flush.cancel()
+    except Exception:  # noqa: BLE001
+        pass
+    _pending_flush = threading.Timer(delay, _flush_now)
+    _pending_flush.daemon = True
+    _pending_flush.start()
+
+
+def _flush_now() -> None:
+    try:
+        drain()
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def drain(limit: int = 50, dry_run: bool = False) -> dict:

@@ -240,7 +240,15 @@ def queue(conn, to_email: str, template: str, ctx: dict, booking_id: int | None 
         " VALUES (?,?,?,?,?,?,?)",
         (to_email, subject, body, template, booking_id, "queued",
          (when or datetime.now()).isoformat(timespec="minutes")))
-    return cur.lastrowid
+    eid = cur.lastrowid
+    # free hosts have no cron: send it a few seconds from now, after this commits
+    if when is None:
+        try:
+            from app.services import mailer
+            mailer.schedule_flush()
+        except Exception:  # noqa: BLE001
+            pass
+    return eid
 
 
 # ------------------------------------------------------------------ triggers
