@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 from app import db as dbmod
 from app.services import pricing
 
-TERMS_VERSION = "2026.02"
+TERMS_VERSION = "2026.03"
 
 TERMS_MD = """# Bimmer House Calls: Terms and Conditions of Service
 
@@ -34,7 +34,8 @@ We provide mobile maintenance, repairs, performance part installation, ECU unloc
 
 ## 3. Quotes, Estimates, and VIN
 - A Vehicle Identification Number (VIN) is required for every quote and booking so we can confirm your exact model, engine, options, and which parts and tunes fit your vehicle.
-- Prices shown on our website are starting points. Your final price depends on your vehicle, the parts used, and the work needed.
+- Prices shown on our website are for labor only. They are starting points and depend on your vehicle, the condition of the parts, and the work needed.
+- You supply the parts for every job. We do not order, source, stock, or mark up parts unless we agree otherwise in writing before the appointment.
 - We will provide a quote before work begins. A quote is valid for {quote_valid_days} days unless stated otherwise.
 - Quotes are estimates based on what we can see before work starts. If we discover a problem that changes the work needed, we will contact you and get your approval before doing anything that raises the price.
 
@@ -49,7 +50,7 @@ We provide mobile maintenance, repairs, performance part installation, ECU unloc
 A travel fee may apply based on the driving distance between our starting point and your service address. The fee is shown during booking or in your quote, and it is separate from the service price. We may decline bookings outside our service area.
 
 ## 6. Payment
-- A deposit may be required to confirm your booking. The deposit is applied toward your final total. Standard menu services do not require a deposit; custom builds require a deposit before parts are ordered.
+- A deposit may be required to confirm your booking. The deposit is applied toward your final total. Standard menu services do not require a deposit; custom builds require a deposit before the appointment is held.
 - The remaining balance is due when the work is completed, before the vehicle is released, unless we agree otherwise in writing.
 - We accept {accepts}. Online payments are processed through our payment provider.
 - Parts that we order for you (including special-order parts) require payment or a deposit before ordering. Special-order and electrical parts are non-refundable once ordered unless they arrive defective or incorrect.

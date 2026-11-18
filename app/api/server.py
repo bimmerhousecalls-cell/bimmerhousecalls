@@ -78,7 +78,13 @@ def email_ctx(conn, payload, out, client, start: datetime | None) -> dict:
 
 def notify_owner(conn, template: str, ctx: dict, booking_id: int | None = None) -> None:
     """Every new request / signature / payment also lands in the owner's inbox."""
-    owner = catalog()["shop"]["email"]
+    shop = catalog()["shop"]
+    owner = (shop.get("alerts") or {}).get("to") or shop["email"]
+    # the owner can switch any of these off in Settings
+    gate = {"owner_new_lead": "onRequest", "owner_signed": "onSignature",
+            "owner_paid": "onPayment", "owner_cancelled": "onCancel"}.get(template)
+    if gate and not (shop.get("alerts") or {}).get(gate, True):
+        return
     try:
         emails.queue(conn, owner, template, {**ctx, "admin_link": f"{BASE_URL}/admin"}, booking_id)
     except Exception:  # never let a notification break the client's flow
@@ -152,27 +158,28 @@ def do_request(body: dict) -> dict:
         start = datetime.fromisoformat(b["scheduled_start"]) if b["scheduled_start"] else None
         ctx2 = email_ctx(conn, body, out, body["client"], start)
         ctx2["vehicle"] = (v["model"] if v and v["model"] else "BMW")
-        inv = None
-        if out["quote"]["custom"]:
-            inv = booking.create_invoice(conn, out["bookingId"], out["proposal"]["proposalId"], "deposit")
-            emails.queue(conn, c["email"], "proposal_signed",
-                         {**ctx2, "invoice": inv["number"], "link": f"{BASE_URL}/i/{inv['publicToken']}"},
-                         out["bookingId"])
-        else:
-            conn.execute("UPDATE bookings SET status='confirmed', updated_at=datetime('now') WHERE id=?",
-                         (out["bookingId"],))
-            emails.queue(conn, c["email"], "booking_confirmed", ctx2, out["bookingId"])
-            if start:
-                emails.queue(conn, c["email"], "day_before", ctx2, out["bookingId"],
-                             when=(start - timedelta(days=1)).replace(hour=17, minute=0))
-                emails.queue(conn, c["email"], "review_request", ctx2, out["bookingId"],
-                             when=start + timedelta(days=1, hours=20))
+        # The invoice is DRAFTED, not sent: prices vary by car, so the owner
+        # opens the dashboard, adjusts the lines, and hits "Send invoice".
+        inv = booking.create_invoice(conn, out["bookingId"], out["proposal"]["proposalId"],
+                                     "deposit" if out["quote"]["custom"] else "balance")
+        if inv["amountDue"] <= 0:
+            # a by-VIN quote has no price yet — no invoice until the owner sets one
+            inv = None
+        conn.execute("UPDATE bookings SET status='confirmed', updated_at=datetime('now') WHERE id=?",
+                     (out["bookingId"],))
+        emails.queue(conn, c["email"], "booking_confirmed", ctx2, out["bookingId"])
+        if start:
+            emails.queue(conn, c["email"], "day_before", ctx2, out["bookingId"],
+                         when=(start - timedelta(days=1)).replace(hour=17, minute=0))
+            emails.queue(conn, c["email"], "review_request", ctx2, out["bookingId"],
+                         when=start + timedelta(days=1, hours=20))
         emails.cancel_pending(conn, out["bookingId"], ["proposal_reminder"])
         notify_owner(conn, "owner_signed", {**ctx2, "client": body["client"].get("name", ""),
                                             "code": out["code"]}, out["bookingId"])
         out["depositInvoice"] = ({"number": inv["number"], "amountDue": inv["amountDue"],
+                                  "status": "draft",
                                   "link": f"{BASE_URL}/i/{inv['publicToken']}"} if inv else None)
-        out["emailsQueued"] = (sent if isinstance(sent, int) else len(sent)) + (1 if inv else 3)
+        out["emailsQueued"] = (sent if isinstance(sent, int) else len(sent)) + 3
         out["links"] = {"proposal": f"{BASE_URL}/p/{out['proposal']['publicToken']}",
                         "invoice": out["depositInvoice"]["link"] if out["depositInvoice"] else None}
         out["slot"] = out["quote"]["slot"]
@@ -267,7 +274,7 @@ def sign_proposal(tok: str, body: dict, ip: str, ua: str) -> dict:
                 "bookingStatus": "confirmed"}
 
 
-def get_invoice(tok: str) -> dict:
+def get_invoice(tok: str) -> dict:  # raises LookupError -> 404
     """Everything the client sees on their invoice: their info, the car, the work,
     the money, the terms they signed, and their signature."""
     cat = catalog()
@@ -459,6 +466,7 @@ def admin_booking(booking_id: int) -> dict:
 
 
 def handle_admin(action: str, body: dict) -> dict:
+    cat = catalog()
     with dbmod.db() as conn:
         if action == "summary":
             return admin_summary()
@@ -557,11 +565,19 @@ def handle_admin(action: str, body: dict) -> dict:
                             "amountDue": t.get("amountDue", 0), "total": t.get("total", 0),
                             "taxRate": t.get("taxRate", 0), "note": t.get("note", ""),
                             "lines": t.get("lines") or [], "paid": paid,
+                            "draft": r["status"] == "draft",
                             "locked": paid > 0, "link": f"{BASE_URL}/i/{r['public_token']}"})
             return {"invoices": out}
         if action == "invoice.update":
-            return booking.update_invoice(conn, int(body["invoiceId"]), body.get("lines") or [],
-                                          body.get("note", ""), body.get("taxRate"))
+            res = booking.update_invoice(conn, int(body["invoiceId"]), body.get("lines") or [],
+                                         body.get("note", ""), body.get("taxRate"))
+            conn.commit()  # release the write lock before queueing the email
+            if body.get("send"):
+                # "Save & send" in one step: price it your way, then email it
+                inv2 = conn.execute("SELECT * FROM invoices WHERE id=?",
+                                    (int(body["invoiceId"]),)).fetchone()
+                res["send"] = handle_admin("invoice.send", {"invoiceId": inv2["id"]})
+            return res
         if action == "invoice.send":
             inv = conn.execute("SELECT * FROM invoices WHERE id=?", (int(body["invoiceId"]),)).fetchone()
             if not inv:
@@ -582,6 +598,24 @@ def handle_admin(action: str, body: dict) -> dict:
             conn.execute("UPDATE invoices SET status=CASE WHEN status='draft' THEN 'open' ELSE status END WHERE id=?",
                          (inv["id"],))
             return {"sent": True, "number": inv["number"], "to": c["email"]}
+        if action == "email.diagnose":
+            from app.services import mailer as mailer_mod
+            return mailer_mod.diagnose()
+        if action == "email.send_test":
+            from app.services import mailer as mailer_mod
+            to = (body or {}).get("to") or cat["shop"].get("email")
+            if not to:
+                raise ValueError("No address to send to")
+            d = mailer_mod.diagnose()
+            if d["sender"] == "none":
+                return {"sent": False, "why": d["problem"]}
+            try:
+                how = mailer_mod.send_now(to, "Bimmer House Calls — test email",
+                                          "<p>This is a test from your backend. If you are reading it, "
+                                          "client email works.</p>")
+            except Exception as exc:  # noqa: BLE001
+                return {"sent": False, "why": f"{type(exc).__name__}: {exc}"}
+            return {"sent": how != "queued", "how": how, "to": to}
         if action == "database.reset":
             if (body or {}).get("confirm") != "RESET":
                 raise ValueError("Type RESET to confirm - this deletes every test client, booking and invoice")
@@ -646,7 +680,7 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(raw)
 
-    def _file(self, path):
+    def _file(self, path, code=200):
         try:
             with open(path, "rb") as fh:
                 raw = fh.read()
@@ -655,7 +689,7 @@ class Handler(BaseHTTPRequestHandler):
         ext = os.path.splitext(path)[1].lower()
         ctype = {".html": "text/html; charset=utf-8", ".css": "text/css", ".js": "text/javascript",
                  ".png": "image/png", ".svg": "image/svg+xml", ".ico": "image/x-icon"}.get(ext, "text/plain")
-        self.send_response(200)
+        self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(raw)))
         self._cors()
@@ -744,6 +778,11 @@ class Handler(BaseHTTPRequestHandler):
                 return self._file(os.path.join(STATIC, "proposal.html"))
             m = re.fullmatch(r"/i/([\w\-]+)", u.path)
             if m:
+                # a bad or expired link should say so, not show a broken page
+                try:
+                    get_invoice(m.group(1))
+                except LookupError:
+                    return self._file(os.path.join(STATIC, "invoice.html"), 404)
                 return self._file(os.path.join(STATIC, "invoice.html"))
             if u.path == "/admin/database.sqlite3":
                 if not self._admin_ok():

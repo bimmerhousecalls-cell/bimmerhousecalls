@@ -280,6 +280,10 @@ async function settingsView() {
         <div class="row"><button class="act primary" id="archiveBtn">File finished jobs now</button><span id="archiveOut" class="muted"></span></div>
         <div class="row" style="margin-top:10px"><button class="act" id="dbBtn">Download the database</button><span class="muted">Save this before any redeploy on a host without a disk.</span></div>
         <div class="row" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)">
+          <button class="act" id="testEmailBtn">Send a test email to myself</button>
+          <span id="testEmailOut" class="muted">Checks that client email really sends. Run this after adding the Gmail app password.</span>
+        </div>
+        <div class="row" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)">
           <button class="act" id="resetBtn" style="border-color:#b42318;color:#b42318">Start clean — delete all test data</button>
           <span id="resetOut" class="muted">Removes every client, booking, quote, invoice and email. Keeps your menu, terms, colors and password.</span>
         </div>
@@ -316,11 +320,11 @@ async function invoiceEditor() {
   if (!list.length) { box.innerHTML = '<div class="muted">No invoices yet — they appear here once a job is booked.</div>'; return; }
   box.innerHTML = list.slice(0, 40).map(i => `
     <div class="row" style="justify-content:space-between;border-bottom:1px solid var(--line);padding:9px 0;gap:10px">
-      <div><b>${esc(i.number)}</b> · ${esc(i.client || '')}<div class="muted" style="font-size:12.5px">${esc(i.kind || '')} · due ${esc((i.due_at || '').slice(0, 10))}</div></div>
+      <div><b>${esc(i.number)}</b> · ${esc(i.client || '')}<div class="muted" style="font-size:12.5px">${esc(i.kind || '')} · due ${esc((i.due_at || '').slice(0, 10))}${i.draft ? ' · <b style="color:#b39100">draft — not sent yet</b>' : ''}</div></div>
       <div class="row" style="gap:8px;align-items:center">
-        <b>${money(i.amountDue || 0)}</b><span class="pill ${i.status}">${i.status}</span>
-        <button class="act" data-edit="${i.id}">Edit</button>
-        <button class="act primary" data-send="${i.id}">Email it</button>
+        <b>${money(i.amountDue || 0)}</b><span class="pill ${i.status}">${i.draft ? 'draft' : i.status}</span>
+        <button class="act" data-edit="${i.id}">${i.draft ? 'Edit price' : 'Edit'}</button>
+        <button class="act primary" data-send="${i.id}">${i.draft ? 'Send invoice' : 'Email again'}</button>
       </div>
     </div>`).join('');
   box.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => openInvoiceEditor(Number(b.dataset.edit), list));
@@ -330,7 +334,8 @@ async function invoiceEditor() {
       const r = await api('invoice.send', {invoiceId: Number(b.dataset.send)});
       b.textContent = 'Sent';
       toast(`Emailed ${r.number} to ${r.to}`);
-    } catch (e) { b.disabled = false; b.textContent = 'Email it'; toast('Could not send: ' + e.message); }
+      invoiceEditor();
+    } catch (e) { b.disabled = false; b.textContent = 'Send invoice'; toast('Could not send: ' + e.message); }
   });
 }
 
@@ -381,10 +386,9 @@ async function openInvoiceEditor(id, list) {
   $('closeInv').onclick = () => wrap.remove();
   const save = async (thenSend) => {
     try {
-      const r = await api('invoice.update', {invoiceId: id, lines, note: $('invNote').value, taxRate: inv.taxRate});
-      if (thenSend) await api('invoice.send', {invoiceId: id});
+      const r = await api('invoice.update', {invoiceId: id, lines, note: $('invNote').value, taxRate: inv.taxRate, send: !!thenSend});
       wrap.remove();
-      toast(thenSend ? `Saved and emailed — ${money(r.total)}` : `Saved — total ${money(r.total)}`);
+      toast(thenSend ? `Saved and sent — ${money(r.total)}` : `Saved — total ${money(r.total)}. Not sent yet.`);
       settingsView();
     } catch (e) { toast('Could not save: ' + e.message); }
   };
@@ -565,6 +569,18 @@ $('keyBtn').onclick = () => {
   enter();
 };
 document.addEventListener('DOMContentLoaded', () => {
+  const tb = $('testEmailBtn');
+  if (tb) tb.onclick = async () => {
+    const out = $('testEmailOut');
+    tb.disabled = true; tb.textContent = 'Sending…';
+    try {
+      const r = await api('email.send_test', {});
+      out.textContent = r.sent
+        ? 'Sent to ' + r.to + ' via ' + r.how + '. Check that inbox (and spam).'
+        : 'Not sent. ' + (r.why || 'No sender configured.');
+    } catch (e) { out.textContent = 'Not sent. ' + e.message; }
+    tb.disabled = false; tb.textContent = 'Send a test email to myself';
+  };
   const rb = $('resetBtn');
   if (rb) rb.onclick = async () => {
     const out = $('resetOut');

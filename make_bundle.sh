@@ -4,6 +4,7 @@
 # empty database. Upload the zip to any host that runs Python (Render, Railway,
 # Fly, a VPS, DigitalOcean App Platform) — see DEPLOY.md.
 # To put it online without git, read GOING-ONLINE-NO-GIT.md.
+# For the Render settings, read RENDER-CONFIGURE.md.
 # To point your Netlify Book buttons at it, read CHANGE-BOOK-LINKS.md.
 cd "$(dirname "$0")" || exit 1
 mkdir -p dist

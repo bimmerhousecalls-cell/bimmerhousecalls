@@ -110,10 +110,11 @@ Heading your way — about {eta} minutes out.
 """,
     "invoice_sent": """Hi {first_name},
 
-Invoice {invoice} for ${amount}:
+Here is invoice {invoice} for ${amount}, for the work on your {vehicle}:
+
 {link}
 
-Pay by card, Apple Pay, or Google Pay with that link, or hand me cash/Zelle on site.
+Open it any time — it shows every line, the labor price, the terms you signed and your signature. Pay with Zelle, cash, or a check when the work is done. Nothing is charged online.
 
 — Bimmer House Calls
 """,

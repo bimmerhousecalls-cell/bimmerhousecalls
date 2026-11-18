@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 from datetime import datetime
 
@@ -51,7 +52,9 @@ def _smtp_send(to: str, subject: str, body: str) -> bool:
     msg["From"] = f"{cat['shop'].get('name', 'Bimmer House Calls')} <{user}>"
     msg["To"] = to
     msg["Subject"] = subject
-    msg.set_content(body)
+    # a plain-text part, then the branded HTML version
+    msg.set_content(re.sub(r"<[^>]+>", "", body))
+    msg.add_alternative(body if "<" in body else f"<pre>{body}</pre>", subtype="html")
     with smtplib.SMTP("smtp.gmail.com", 587, timeout=30) as s:
         s.starttls()
         s.login(user, pwd)
@@ -66,6 +69,34 @@ def send_now(to: str, subject: str, body: str) -> str:
     if _smtp_send(to, subject, body):
         return "smtp"
     return "queued"
+
+
+def diagnose() -> dict:
+    """Why did nothing send? Report each path honestly."""
+    user = os.environ.get("BHC_SMTP_USER")
+    pwd = os.environ.get("BHC_SMTP_PASS")
+    out = {"smtpUser": bool(user), "smtpPass": bool(pwd), "connector": False,
+           "sender": "none", "problem": ""}
+    try:
+        from app.services.gmail_bridge import send as _b  # noqa: F401
+        out["connector"] = True
+    except Exception:
+        pass
+    if user and pwd:
+        try:
+            import smtplib
+            with smtplib.SMTP("smtp.gmail.com", 587, timeout=20) as s:
+                s.starttls()
+                s.login(user, pwd)
+            out["sender"] = "smtp"
+        except Exception as exc:  # noqa: BLE001
+            out["problem"] = f"SMTP login failed: {exc}"
+    elif out["connector"]:
+        out["sender"] = "connector"
+    else:
+        out["problem"] = ("No sender configured. Set BHC_SMTP_USER and BHC_SMTP_PASS "
+                          "(a Gmail app password) on the server.")
+    return out
 
 
 def drain(limit: int = 50, dry_run: bool = False) -> dict:
@@ -120,6 +151,25 @@ def digest() -> dict:
     return {"to": to, "how": how, "body": body}
 
 
+OUTBOX_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+                          "data", "outbox")
+
+
+def write_one(row: dict) -> str:
+    """Write one queued email as a standalone HTML file for the Gmail tool."""
+    os.makedirs(OUTBOX_DIR, exist_ok=True)
+    path = os.path.join(OUTBOX_DIR, f"{row['id']}.html")
+    html = ("<div style=\"font-family:-apple-system,Segoe UI,Roboto,sans-serif;font-size:15px;"
+            "line-height:1.55;color:#0B0B0D;max-width:620px\">"
+            + "<div style=\"border-left:4px solid #FFD400;padding-left:14px\">"
+            + row["body"].replace("&", "&amp;").replace("<", "&lt;").replace("\n", "<br>")
+            + "</div><p style=\"color:#5b6470;font-size:12px;margin-top:18px\">Bimmer House Calls · "
+              "mobile BMW service · Jersey Shore</p></div>")
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write(html)
+    return path
+
+
 def write_outbox(limit: int = 25) -> list[dict]:
     """Turn due emails into files the Gmail tool can send verbatim."""
     out_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
@@ -147,6 +197,19 @@ def mark_sent(email_id: int, how: str = "gmail-connector") -> None:
 
 
 if __name__ == "__main__":
+    if "--diagnose" in sys.argv:
+        print(json.dumps(diagnose(), indent=2))
+        raise SystemExit(0)
+    if "--ids" in sys.argv:
+        ids = [int(x) for x in sys.argv[sys.argv.index("--ids") + 1].split(",") if x.strip()]
+        with dbmod.db() as conn:
+            for i in ids:
+                row = conn.execute("SELECT * FROM emails WHERE id=?", (i,)).fetchone()
+                if row:
+                    path = write_one(dict(row))
+                    print(json.dumps({"id": i, "to": row["to_email"], "subject": row["subject"],
+                                      "file": path}))
+        raise SystemExit(0)
     if "--outbox" in sys.argv:
         print(json.dumps(write_outbox(), indent=2))
     elif "--mark" in sys.argv:

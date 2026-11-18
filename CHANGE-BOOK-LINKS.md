@@ -1,119 +1,134 @@
-# Your Netlify site — where to change the booking links
+# Connect your Netlify site to the booking backend
 
-Open your site's code (or Netlify → Site → Deploys → the repo/file you edit) and
-find `index.html`. It is one file. There are exactly **six** places to change.
+Your backend is live and working:
+**https://bimmerhousecalls.onrender.com/book** ← this is the address.
 
-## The one rule
-
-Every "Book" button must point at your backend with `/book` on the end.
-
-```
-https://YOUR-BACKEND-URL/book
-```
-
-Not the backend root, not `/admin`. `/book` is the booking page.
-
-Right now every one of these buttons is a `#` or goes nowhere.
+Everything below is on the Netlify side. You edit one file.
 
 ---
 
-## The six places in index.html
+## Step 1 — open the right file on Netlify
 
-Search the file for `href="#"` — you will land on each one.
+Two ways, pick whichever you have:
 
-### 1. The big hero button ("Book Now")
+**A. You have a Git repo for the site**
+Edit `index.html` in that repo, commit, and Netlify redeploys.
 
-Find:
+**B. You upload the site by hand (Netlify Drop)**
+1. Find the folder on your computer with your website's `index.html`.
+2. Open it in Notepad, VS Code, or any text editor.
+3. Make the changes below.
+4. Save, then drag the whole folder onto https://app.netlify.com/drop again.
+
+Either way it is **one file**: `index.html`.
+
+---
+
+## Step 2 — find every dead booking button
+
+In `index.html`, search for this:
+
+```
+href="#"
+```
+
+You will hit the Book buttons. Each one needs the address above. There are six.
+
+### 2a. The hero "Book Now"
+
 ```html
 <a class="btn" href="#">Book Now</a>
 ```
-Change to:
+becomes
 ```html
-<a class="btn" href="https://YOUR-BACKEND-URL/book">Book Now</a>
+<a class="btn" href="https://bimmerhousecalls.onrender.com/book">Book Now</a>
 ```
 
-### 2. The nav bar "Book"
+### 2b. The nav bar "Book"
 
-Find:
 ```html
 <a href="#">Book</a>
 ```
-Change to:
+becomes
 ```html
-<a href="https://YOUR-BACKEND-URL/book">Book</a>
+<a href="https://bimmerhousecalls.onrender.com/book">Book</a>
 ```
 
-### 3. The package cards — "Book This"
+### 2c. The three package "Book This" buttons
 
-Each of the three packages has one. They are `onclick="..."` or `href="#"`.
-Change each to:
+Each one becomes:
 ```html
-<a class="btn" href="https://YOUR-BACKEND-URL/book">Book This</a>
+<a class="btn" href="https://bimmerhousecalls.onrender.com/book">Book This</a>
 ```
 
-If a package should pre-select itself in the booking page, add the package id:
-```
-https://YOUR-BACKEND-URL/book?package=essential
-```
-(Use `essential`, `complete`, or `annual` — tell me if your package ids differ and
-I will make the backend read them.)
-
-### 4. "Book Online" in the "Book Your Visit" section
-
-Find:
+To have a package already selected when the booking page opens:
 ```html
-<a href="#">Book Online</a>
+<a class="btn" href="https://bimmerhousecalls.onrender.com/book?package=essential">Book This</a>
 ```
-Change to:
+Use `essential`, `complete`, or `annual`.
+
+### 2d. "Book Online"
+
 ```html
-<a href="https://YOUR-BACKEND-URL/book">Book Online</a>
+<a href="https://bimmerhousecalls.onrender.com/book">Book Online</a>
 ```
 
-### 5. "Submit a Request Online" (custom work)
+### 2e. "Submit a Request Online" (custom work)
 
-Find:
 ```html
-<a href="#">Submit a Request Online</a>
+<a href="https://bimmerhousecalls.onrender.com/book#custom">Submit a Request Online</a>
 ```
-Change to:
-```html
-<a href="https://YOUR-BACKEND-URL/book#custom">Submit a Request Online</a>
-```
-`#custom` opens the booking page already switched to Custom Work.
+`#custom` opens the booking page already switched to Custom build.
 
-### 6. The footer, if it has a booking link
+### 2f. Any footer booking link
 
-Same change: `href="#"` → `href="https://YOUR-BACKEND-URL/book"`.
+Same address: `https://bimmerhousecalls.onrender.com/book`
 
 ---
 
-## Nothing else changes
+## Step 3 — the fast way to do all six
 
-- Phone and email links stay as they are.
-- The Services, FAQ, Packages sections stay on Netlify — they are your menu.
-- You do **not** upload the backend to Netlify. The backend goes to Render (or
-  Railway / Fly). Netlify keeps serving the marketing site; it just links across.
+If your buttons are all the same shape, you can do it in one pass:
 
-## After you deploy the backend
+1. Open `index.html` in a text editor.
+2. Press **Ctrl+H** (find and replace).
+3. Find: `href="#"` — Replace: `href="https://bimmerhousecalls.onrender.com/book"`
+4. **Replace all**.
+5. Save and upload.
 
-1. Open the backend URL — you should see the booking page.
-2. Copy that URL, add `/book`, paste it into the six places above.
-3. Redeploy Netlify.
-4. Click every Book button on the live site and confirm each one lands on the
-   booking page.
-
-## If you would rather not edit code
-
-Send me the URL once the backend is live and I will write the exact replacement
-lines for your file, ready to paste.
+That catches every dead button at once. It is safe as long as `href="#"` only
+appears on booking buttons — check the file first by scrolling through the
+matches.
 
 ---
 
-## While you are in there — two small improvements worth making
+## Step 4 — test it
 
-1. **The FAQ says "Parts orders require a deposit."** That now matches the
-   backend: deposits are for custom orders only, 25%. Menu jobs take no deposit.
-2. **Travel fee wording.** The site says "Travel fee may apply outside the Jersey
-   Shore area." The backend is precise: first 30 miles free, then $0.75/mile to
-   60, then $1.50/mile beyond. You may want to say so — customers like knowing
-   the rule before they book.
+Open your live site and click each Book button. Every one should land on the
+booking page at `bimmerhousecalls.onrender.com/book`.
+
+If it lands on a blank page or an error, the address is mistyped — check for a
+missing `https://` or a trailing slash.
+
+---
+
+## One thing you cannot change
+
+Netlify cannot host the backend. Netlify serves files; the booking page needs a
+running Python program. That is why the buttons point at Render.
+
+The two stay separate on purpose:
+- **Netlify** — your menu, photos, FAQ, prices, story
+- **Render** — booking, quotes, signatures, invoices, your dashboard
+
+---
+
+## Bonus: point a subdomain at it later (optional)
+
+If you ever buy `bimmerhousecalls.com`, you can make it look professional:
+
+- `bimmerhousecalls.com` → stays on Netlify (the marketing site)
+- `book.bimmerhousecalls.com` → the Render backend
+
+Then your buttons read `https://book.bimmerhousecalls.com/book`. Ask me when you
+want to do this; it is a DNS record and one setting in Render.

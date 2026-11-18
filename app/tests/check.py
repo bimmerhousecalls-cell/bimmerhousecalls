@@ -232,8 +232,9 @@ def live_checks(base: str):
                                {"name": "Stage 2 flash", "qty": 1, "unit": 550}],
                      "note": "edited by the check", "taxRate": 0.06625}, key)
         assert st == 200, r
-        assert abs(r["total"] - (970 * 1.06625)) < 0.02, r["total"]
-        return f"{inv['number']} re-priced to ${r['total']:.2f}"
+        # labor-only shop: no NJ tax on these lines
+        assert abs(r["total"] - 970) < 0.02, r["total"]
+        return f"{inv['number']} re-priced to ${r['total']:.2f} (no tax on labor)"
 
     def invoice_shows_everything():
         from app import db as dbmod2

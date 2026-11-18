@@ -267,7 +267,7 @@ def create_invoice(conn, booking_id: int, proposal_id: int | None, kind: str = "
     cur = conn.execute(
         "INSERT INTO invoices(booking_id, proposal_id, number, status, totals_json, due_at, public_token)"
         " VALUES (?,?,?,?,?,?,?)",
-        (booking_id, proposal_id, number, "open", json.dumps(body),
+        (booking_id, proposal_id, number, "draft", json.dumps(body),
          (now() + timedelta(days=7)).isoformat(timespec="minutes"), inv_token))
     audit(conn, f"invoice.{kind}.created", "invoice", cur.lastrowid, number)
     return {"invoiceId": cur.lastrowid, "number": number, "amountDue": amount, "publicToken": inv_token}
@@ -283,11 +283,20 @@ def create_manual_invoice(conn, booking_id: int, amount: float, kind: str = "pay
     cur = conn.execute(
         "INSERT INTO invoices(booking_id, number, status, totals_json, due_at, public_token)"
         " VALUES (?,?,?,?,?,?)",
-        (booking_id, number, "open", json.dumps(totals),
+        (booking_id, number, "draft", json.dumps(totals),
          (now() + timedelta(days=due_days)).isoformat(timespec="minutes"), inv_token))
     audit(conn, "invoice.manual.created", "invoice", cur.lastrowid, number, "owner")
     return {"invoiceId": cur.lastrowid, "number": number, "amountDue": totals["amountDue"],
             "publicToken": inv_token, "link": f"/i/{inv_token}"}
+
+
+def catalog_shop_parts_excluded() -> bool:
+    """True when the shop's prices are labor only (customer supplies the parts)."""
+    try:
+        shop = pricing.load_catalog()["shop"]
+        return not shop.get("partsIncluded", False)
+    except Exception:  # noqa: BLE001
+        return False
 
 
 def update_invoice(conn, invoice_id: int, lines: list[dict] | None = None,
@@ -316,6 +325,9 @@ def update_invoice(conn, invoice_id: int, lines: list[dict] | None = None,
         raise ValueError("An invoice needs at least one line")
     subtotal = round(sum(l["total"] for l in clean), 2)
     rate = float(tax_rate if tax_rate is not None else body.get("taxRate", 0) or 0)
+    # the client supplies the parts, so the owner's prices are labor — no NJ tax
+    if catalog_shop_parts_excluded():
+        rate = 0.0
     tax = round(subtotal * rate, 2)
     total = round(subtotal + tax, 2)
     body.update({"lines": clean, "subtotal": subtotal, "taxRate": rate, "tax": tax,

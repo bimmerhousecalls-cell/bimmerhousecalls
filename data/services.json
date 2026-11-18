@@ -94,6 +94,16 @@
         "HOUSE CALLS"
       ],
       "tagline": "Mobile BMW service · performance · tuning"
+    },
+    "partsPolicy": "Customer supplies their own parts. Prices shown are labor only — no parts are included or sourced.",
+    "partsIncluded": false,
+    "alerts": {
+      "to": "bimmerhousecalls@gmail.com",
+      "onRequest": true,
+      "onSignature": true,
+      "onPayment": true,
+      "onCancel": true,
+      "note": "Every website submission is emailed to this address the moment it happens."
     }
   },
   "travel": {
@@ -138,7 +148,8 @@
           "quote": false,
           "laborHours": 3,
           "requiresVin": true,
-          "addon": false
+          "addon": false,
+          "laborOnly": true
         },
         {
           "id": "stage1-tune",
@@ -149,7 +160,8 @@
           "quote": false,
           "laborHours": 2,
           "requiresVin": true,
-          "addon": false
+          "addon": false,
+          "laborOnly": true
         },
         {
           "id": "stage2-tune",
@@ -160,7 +172,8 @@
           "quote": false,
           "laborHours": 3,
           "requiresVin": true,
-          "addon": false
+          "addon": false,
+          "laborOnly": true
         },
         {
           "id": "datalog-review",
@@ -171,14 +184,15 @@
           "quote": false,
           "laborHours": 1,
           "requiresVin": true,
-          "addon": false
+          "addon": false,
+          "laborOnly": true
         }
       ]
     },
     {
       "id": "exhaust",
       "name": "Downpipes & Exhaust",
-      "blurb": "Labor pricing. Bring your parts or I'll source them.",
+      "blurb": "Labor pricing only. You supply the parts; I install them.",
       "items": [
         {
           "id": "downpipe-install",
@@ -189,7 +203,8 @@
           "quote": false,
           "laborHours": 4,
           "requiresVin": true,
-          "addon": false
+          "addon": false,
+          "laborOnly": true
         },
         {
           "id": "catback-install",
@@ -200,7 +215,8 @@
           "quote": true,
           "laborHours": 4,
           "requiresVin": true,
-          "addon": false
+          "addon": false,
+          "laborOnly": true
         }
       ]
     },
@@ -218,7 +234,8 @@
           "quote": false,
           "laborHours": 1.5,
           "requiresVin": true,
-          "addon": false
+          "addon": false,
+          "laborOnly": true
         },
         {
           "id": "charge-pipe-install",
@@ -229,7 +246,8 @@
           "quote": false,
           "laborHours": 2,
           "requiresVin": true,
-          "addon": false
+          "addon": false,
+          "laborOnly": true
         }
       ]
     },
@@ -247,7 +265,8 @@
           "quote": false,
           "laborHours": 4,
           "requiresVin": true,
-          "addon": false
+          "addon": false,
+          "laborOnly": true
         },
         {
           "id": "heat-exchanger",
@@ -258,7 +277,8 @@
           "quote": true,
           "laborHours": 4,
           "requiresVin": true,
-          "addon": false
+          "addon": false,
+          "laborOnly": true
         },
         {
           "id": "radiator",
@@ -269,7 +289,8 @@
           "quote": true,
           "laborHours": 4,
           "requiresVin": true,
-          "addon": false
+          "addon": false,
+          "laborOnly": true
         },
         {
           "id": "oil-cooler",
@@ -280,7 +301,8 @@
           "quote": true,
           "laborHours": 5,
           "requiresVin": true,
-          "addon": false
+          "addon": false,
+          "laborOnly": true
         },
         {
           "id": "water-pump-thermostat",
@@ -291,7 +313,8 @@
           "quote": true,
           "laborHours": 5,
           "requiresVin": true,
-          "addon": false
+          "addon": false,
+          "laborOnly": true
         }
       ]
     },
@@ -310,7 +333,8 @@
           "laborHours": 6,
           "requiresVin": true,
           "needsLift": true,
-          "addon": false
+          "addon": false,
+          "laborOnly": true
         }
       ]
     },
@@ -328,7 +352,8 @@
           "quote": true,
           "laborHours": 1.5,
           "requiresVin": true,
-          "addon": false
+          "addon": false,
+          "laborOnly": true
         },
         {
           "id": "mirror-caps",
@@ -339,7 +364,8 @@
           "quote": true,
           "laborHours": 1,
           "requiresVin": true,
-          "addon": false
+          "addon": false,
+          "laborOnly": true
         },
         {
           "id": "front-lip",
@@ -350,7 +376,8 @@
           "quote": true,
           "laborHours": 2,
           "requiresVin": true,
-          "addon": false
+          "addon": false,
+          "laborOnly": true
         },
         {
           "id": "rear-diffuser",
@@ -361,7 +388,8 @@
           "quote": true,
           "laborHours": 2,
           "requiresVin": true,
-          "addon": false
+          "addon": false,
+          "laborOnly": true
         },
         {
           "id": "badge-swap",
@@ -372,7 +400,8 @@
           "quote": true,
           "laborHours": 1,
           "requiresVin": true,
-          "addon": false
+          "addon": false,
+          "laborOnly": true
         },
         {
           "id": "headlight-mods",
@@ -383,7 +412,8 @@
           "quote": true,
           "laborHours": 3,
           "requiresVin": true,
-          "addon": false
+          "addon": false,
+          "laborOnly": true
         }
       ]
     },
@@ -402,7 +432,8 @@
           "laborHours": 8,
           "requiresVin": true,
           "askSunroof": true,
-          "addon": false
+          "addon": false,
+          "laborOnly": true
         },
         {
           "id": "starlight-twinkle",
@@ -413,7 +444,8 @@
           "quote": true,
           "laborHours": 1,
           "requiresVin": true,
-          "addon": true
+          "addon": true,
+          "laborOnly": true
         },
         {
           "id": "starlight-shooting",
@@ -424,7 +456,8 @@
           "quote": true,
           "laborHours": 1,
           "requiresVin": true,
-          "addon": true
+          "addon": true,
+          "laborOnly": true
         }
       ]
     },
@@ -442,19 +475,21 @@
           "quote": false,
           "laborHours": 1,
           "requiresVin": true,
-          "partsIncluded": true,
-          "addon": false
+          "partsIncluded": false,
+          "addon": false,
+          "laborOnly": true
         },
         {
           "id": "brake-pads-rotors",
           "name": "Brake pads & rotors",
-          "desc": "Per axle, plus parts.",
+          "desc": "Per axle, labor only.",
           "min": 350,
           "max": 600,
           "quote": false,
           "laborHours": 3,
           "requiresVin": true,
-          "addon": false
+          "addon": false,
+          "laborOnly": true
         },
         {
           "id": "spark-plugs",
@@ -465,7 +500,8 @@
           "quote": false,
           "laborHours": 2,
           "requiresVin": true,
-          "addon": false
+          "addon": false,
+          "laborOnly": true
         },
         {
           "id": "coolant-flush",
@@ -476,7 +512,8 @@
           "quote": false,
           "laborHours": 1.5,
           "requiresVin": true,
-          "addon": false
+          "addon": false,
+          "laborOnly": true
         },
         {
           "id": "ppi",
@@ -487,7 +524,8 @@
           "quote": false,
           "laborHours": 2,
           "requiresVin": true,
-          "addon": false
+          "addon": false,
+          "laborOnly": true
         },
         {
           "id": "diagnostics",
@@ -498,14 +536,15 @@
           "quote": false,
           "laborHours": 1,
           "requiresVin": true,
-          "addon": false
+          "addon": false,
+          "laborOnly": true
         }
       ]
     },
     {
       "id": "repairs",
       "name": "Repairs",
-      "blurb": "Quoted individually because parts and time vary by model and engine. Send your VIN for a price.",
+      "blurb": "Quoted individually because labor time varies by model and engine. Send your VIN for a price. You supply the parts.",
       "items": [
         {
           "id": "valve-cover-gasket",
@@ -516,7 +555,8 @@
           "quote": true,
           "laborHours": 5,
           "requiresVin": true,
-          "addon": false
+          "addon": false,
+          "laborOnly": true
         },
         {
           "id": "ofhg",
@@ -527,7 +567,8 @@
           "quote": true,
           "laborHours": 5,
           "requiresVin": true,
-          "addon": false
+          "addon": false,
+          "laborOnly": true
         },
         {
           "id": "water-pump-repair",
@@ -538,7 +579,8 @@
           "quote": true,
           "laborHours": 5,
           "requiresVin": true,
-          "addon": false
+          "addon": false,
+          "laborOnly": true
         },
         {
           "id": "vanos-solenoids",
@@ -549,7 +591,8 @@
           "quote": true,
           "laborHours": 3,
           "requiresVin": true,
-          "addon": false
+          "addon": false,
+          "laborOnly": true
         },
         {
           "id": "ignition-coils",
@@ -560,7 +603,8 @@
           "quote": true,
           "laborHours": 2,
           "requiresVin": true,
-          "addon": false
+          "addon": false,
+          "laborOnly": true
         }
       ]
     }
@@ -574,7 +618,8 @@
       "min": 40,
       "max": 80,
       "quote": false,
-      "laborHours": 0.5
+      "laborHours": 0.5,
+      "laborOnly": true
     },
     {
       "id": "add-engine-filter",
@@ -584,7 +629,8 @@
       "min": 40,
       "max": 80,
       "quote": false,
-      "laborHours": 0.25
+      "laborHours": 0.25,
+      "laborOnly": true
     },
     {
       "id": "add-wipers",
@@ -594,7 +640,8 @@
       "min": 30,
       "max": 60,
       "quote": false,
-      "laborHours": 0.25
+      "laborHours": 0.25,
+      "laborOnly": true
     },
     {
       "id": "add-brake-fluid",
@@ -604,7 +651,8 @@
       "min": 100,
       "max": 150,
       "quote": false,
-      "laborHours": 1
+      "laborHours": 1,
+      "laborOnly": true
     },
     {
       "id": "add-tire-rotation",
@@ -614,7 +662,8 @@
       "min": 40,
       "max": 60,
       "quote": false,
-      "laborHours": 0.5
+      "laborHours": 0.5,
+      "laborOnly": true
     },
     {
       "id": "add-mpi",
@@ -624,7 +673,8 @@
       "min": 50,
       "max": 75,
       "quote": false,
-      "laborHours": 0.5
+      "laborHours": 0.5,
+      "laborOnly": true
     },
     {
       "id": "add-spark-refresh",
@@ -634,7 +684,8 @@
       "min": 250,
       "max": 400,
       "quote": false,
-      "laborHours": 2
+      "laborHours": 2,
+      "laborOnly": true
     },
     {
       "id": "add-oil-before-tune",
@@ -644,7 +695,8 @@
       "min": 150,
       "max": 250,
       "quote": false,
-      "laborHours": 1
+      "laborHours": 1,
+      "laborOnly": true
     },
     {
       "id": "add-datalog-check",
@@ -654,7 +706,8 @@
       "min": 75,
       "max": 150,
       "quote": false,
-      "laborHours": 1
+      "laborHours": 1,
+      "laborOnly": true
     },
     {
       "id": "add-bench-unlock",
@@ -664,7 +717,8 @@
       "min": 200,
       "max": 200,
       "quote": false,
-      "laborHours": 3
+      "laborHours": 3,
+      "laborOnly": true
     }
   ],
   "packages": [
