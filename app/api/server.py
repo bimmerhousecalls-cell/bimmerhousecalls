@@ -660,6 +660,125 @@ def handle_admin(action: str, body: dict) -> dict:
 
 # ------------------------------------------------------------------ HTTP plumbing
 
+
+PRIVACY_MD = """# Privacy Policy
+
+**{shop}** — mobile BMW service. Based in {base}.
+
+## What we collect
+
+- Your name, phone number, email address and service address
+- Your vehicle's VIN, model and year
+- The work you ask us to do, and any notes you give us
+- Your signature on our service terms, the time you signed, and the IP address you signed from
+- Records of quotes, invoices and payments
+
+## Why we collect it
+
+To quote the work, travel to you, do the work, invoice you, and keep a record of
+what was agreed. We also use your email and phone to send you booking
+confirmations, reminders and invoices.
+
+## Who we share it with
+
+Nobody. We do not sell, rent or trade your information. It is not shared with
+advertisers or data brokers.
+
+We use Google to send our email. Google processes the messages we send and
+receives your email address as the recipient.
+
+## How long we keep it
+
+Booking and invoice records are kept for seven years, which is what tax and
+warranty records require. You can ask us to delete anything else at any time.
+
+## Your choices
+
+Email **{email}** or call **{phone}** to:
+
+- Ask what we hold about you
+- Correct anything that is wrong
+- Ask us to delete your information
+- Stop receiving reminders and follow-up emails
+
+## Security
+
+Access to your information is limited to the owner of {shop}. Payment card
+numbers are never stored — we take payment by Zelle, cash or check.
+
+## Contact
+
+{shop} · {email} · {phone}
+
+_Last updated 2026._
+"""
+
+
+def md_to_html(md: str, shop_name: str) -> str:
+    """Small, safe markdown renderer for the public terms/privacy pages."""
+    import html as htmllib
+    out, in_list, para = [], False, []
+    lines = md.splitlines()
+    merged = []
+    for ln in lines:
+        if not ln.strip():
+            if para:
+                merged.append(" ".join(para))
+                para = []
+            merged.append("")
+        elif ln.startswith(("# ", "## ")) or ln.lstrip().startswith("- "):
+            if para:
+                merged.append(" ".join(para))
+                para = []
+            merged.append(ln)
+        else:
+            para.append(ln.strip())
+    if para:
+        merged.append(" ".join(para))
+    for raw in merged:
+        line = raw.rstrip()
+        if not line.strip():
+            if in_list:
+                out.append("</ul>")
+                in_list = False
+            continue
+        if line.startswith("# "):
+            if in_list:
+                out.append("</ul>")
+                in_list = False
+            out.append(f"<h1>{htmllib.escape(line[2:])}</h1>")
+        elif line.startswith("## "):
+            if in_list:
+                out.append("</ul>")
+                in_list = False
+            out.append(f"<h2>{htmllib.escape(line[3:])}</h2>")
+        elif line.lstrip().startswith("- "):
+            if not in_list:
+                out.append("<ul>")
+                in_list = True
+            out.append(f"<li>{htmllib.escape(line.lstrip()[2:])}</li>")
+        else:
+            if in_list:
+                out.append("</ul>")
+                in_list = False
+            text = htmllib.escape(line)
+            text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
+            text = re.sub(r"_(.+?)_", r"<em>\1</em>", text)
+            out.append(f"<p>{text}</p>")
+    if in_list:
+        out.append("</ul>")
+    return ("<!doctype html><html lang='en'><head><meta charset='utf-8'>"
+            "<meta name='viewport' content='width=device-width,initial-scale=1'>"
+            f"<title>{htmllib.escape(shop_name)}</title>"
+            "<style>body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;"
+            "max-width:760px;margin:0 auto;padding:36px 20px 80px;color:#0B0B0D;line-height:1.6}"
+            "h1{font-size:30px;margin:0 0 18px}h2{font-size:19px;margin:30px 0 8px}"
+            "li{margin:4px 0}p{margin:9px 0}"
+            "a{color:#0B0B0D}footer{margin-top:44px;padding-top:16px;border-top:1px solid #e5e8ec;"
+            "font-size:13px;color:#5b6470}</style></head><body>" + "".join(out) +
+            f"<footer>{htmllib.escape(shop_name)} · mobile BMW service</footer></body></html>")
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "BHC/1.0"
 
@@ -852,6 +971,20 @@ class Handler(BaseHTTPRequestHandler):
                            "<a href='https://myaccount.google.com/permissions'>myaccount.google.com/permissions</a> "
                            "and try again.</p>"))
                 return self._file_bytes(page, "text/html; charset=utf-8")
+            if u.path in ("/terms", "/privacy"):
+                from app.services import terms as terms_mod
+                cat = pricing.load_catalog()
+                shop = cat["shop"]
+                if u.path == "/terms":
+                    body_md = terms_mod.render_terms(cat)
+                else:
+                    body_md = PRIVACY_MD.format(
+                        shop=shop.get("name", "Bimmer House Calls"),
+                        email=shop.get("email", ""),
+                        phone=shop.get("phone", ""),
+                        base=shop.get("baseAddress", "Surf City, NJ"))
+                html = md_to_html(body_md, shop.get("name", "Bimmer House Calls"))
+                return self._file_bytes(html, "text/html; charset=utf-8")
             if u.path in ("/api/env-check",):
                 # which BHC_ variables this process can actually see (names only)
                 names = sorted(k for k in os.environ if k.startswith("BHC_"))
