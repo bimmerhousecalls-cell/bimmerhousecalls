@@ -1,0 +1,2 @@
+# Bimmer House Calls backend — no third-party packages needed.
+# Python 3.10+ standard library only (sqlite3, http.server, hashlib).

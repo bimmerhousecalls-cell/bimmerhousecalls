@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your quote · Bimmer House Calls</title>
+<style>
+  :root{--ink:#0B0B0D;--mut:#5b6470;--line:#e5e8ec;--accent:#FFD400;--accent-2:#E6BF00;--accent-ink:#0B0B0D;--ok:#0a7d43;--bg:#f6f8fa}
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--bg)}
+  .wrap{max-width:760px;margin:0 auto;padding:24px 18px 80px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px;margin-bottom:16px}
+  h1{font-size:22px;margin:0 0 4px}
+  h2{font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin:0 0 12px}
+  .brand{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+  .muted{color:var(--mut);font-size:14px}
+  table{width:100%;border-collapse:collapse;font-size:15px}
+  td,th{padding:8px 0;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  td.r,th.r{text-align:right;white-space:nowrap}
+  tr.total td{border:0;font-weight:700;font-size:18px;padding-top:14px}
+  tr.deposit td{border:0;color:var(--ok);font-weight:600}
+  .pill{display:inline-block;padding:3px 10px;border-radius:999px;background:#FFF6C2;color:#5a4a00;font-size:12px;font-weight:700}
+  .pill.signed{background:#e7f7ee;color:var(--ok)}
+  button{font:inherit;font-weight:800;border:0;border-radius:10px;padding:14px 20px;background:var(--accent);color:var(--accent-ink);cursor:pointer;width:100%}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .terms{max-height:280px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:14px;font-size:14px;white-space:pre-wrap;background:#fcfcfd}
+  .terms h3{font-size:15px;margin:14px 0 6px}
+  .terms h3:first-child{margin-top:0}
+  canvas{width:100%;height:150px;border:1px dashed #b8c0cc;border-radius:10px;background:#fff;touch-action:none}
+  input[type=text]{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;font:inherit}
+  label.chk{display:flex;gap:10px;align-items:flex-start;font-size:14px;margin:14px 0}
+  .sigrow{display:flex;gap:10px;margin-top:8px}
+  .sigrow button{background:#fff;color:var(--ink);border:1px solid var(--line);width:auto;padding:8px 14px;font-weight:500}
+  .done{text-align:center;padding:40px 20px}
+  .done .big{font-size:40px}
+  @media(max-width:520px){.wrap{padding:14px 12px 60px}.card{padding:16px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card brand">
+    <div>
+      <img src="/brand/logo.svg" alt="Bimmer House Calls" style="height:74px;display:block;background:#0B0B0D;border-radius:12px;padding:8px 12px;margin-bottom:10px">
+      <div class="muted">Mobile BMW service, performance &amp; tuning · Jersey Shore, NJ</div>
+    </div>
+    <div style="text-align:right">
+      <div class="pill" id="statusPill">Loading…</div>
+      <div class="muted" id="propNum"></div>
+    </div>
+  </div>
+
+  <div class="card" id="summaryCard">
+    <h2>Your quote</h2>
+    <div class="muted" id="vehicleLine"></div>
+    <div class="muted" id="whenLine" style="margin-bottom:14px"></div>
+    <table id="lines"></table>
+    <div id="detailsBox" style="margin-top:14px"></div>
+  </div>
+
+  <div class="card" id="signCard">
+    <h2 id="signTitle">Sign &amp; confirm</h2>
+    <div class="terms" id="termsBox"></div>
+    <div id="ackList" style="margin:12px 0 4px"></div>
+    <label class="chk"><input type="checkbox" id="readAll"> <span><b>I have read and agree to the Terms and Conditions above</b>, including the Customer Acknowledgment and Waiver, the tuning and ECU unlocking risks, and the warranty limits.</span></label>
+    <label class="chk"><input type="checkbox" id="consent"> <span>I agree that my electronic signature below is legally binding, and that the date, time, IP address and document hash recorded with it are part of my agreement.</span></label>
+    <div style="margin-top:10px">
+      <div class="muted" style="margin-bottom:6px">Draw your signature</div>
+      <canvas id="sigpad"></canvas>
+      <div class="sigrow"><button type="button" id="clearSig">Clear</button></div>
+    </div>
+    <div style="margin-top:14px">
+      <div class="muted" style="margin-bottom:6px">Type your full legal name</div>
+      <input type="text" id="signName" autocomplete="name" placeholder="Sarah Johnson">
+    </div>
+    <div style="margin-top:16px"><button id="signBtn" disabled>Sign &amp; book it</button></div>
+    <div class="muted" id="ackHint" style="margin-top:8px"></div>
+    <div class="muted" style="margin-top:10px" id="signHint">Signature, name, time, IP and a hash of this exact document are recorded.</div>
+  </div>
+
+  <div class="card done" id="doneCard" hidden>
+    <div class="big">✅</div>
+    <h1>Signed — thank you!</h1>
+    <p class="muted" id="doneSub">Your agreement is on file and your date is booked. You pay when the work is done.</p>
+    <div id="depositBox" style="margin-top:14px"></div>
+  </div>
+
+  <div class="card" style="font-size:13px" id="foot"></div>
+</div>
+
+<script>
+const TOKEN = location.pathname.split('/').filter(Boolean).pop();
+const money = n => '$' + Number(n).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+let DATA = null;
+
+function mdToHtml(md) {
+  return md.split('\n').map(l => {
+    if (l.startsWith('## ')) return '<h3>' + l.slice(3) + '</h3>';
+    if (l.startsWith('# ')) return '<h3>' + l.slice(2) + '</h3>';
+    if (l.startsWith('**') && l.endsWith('**')) return '<strong>' + l.slice(2, -2) + '</strong>';
+    return l;
+  }).join('\n');
+}
+
+function render(d) {
+  DATA = d;
+  const p = d.proposal, t = d.totals;
+  document.getElementById('propNum').textContent = p.number;
+  const pill = document.getElementById('statusPill');
+  pill.textContent = {draft:'Draft', sent:'Ready to sign', viewed:'Ready to sign', signed:'Signed', declined:'Declined', expired:'Expired'}[p.status] || p.status;
+  if (p.status === 'signed') pill.classList.add('signed');
+  document.getElementById('vehicleLine').textContent = (d.vehicle.year ? d.vehicle.year + ' ' : '') + 'BMW ' + (d.vehicle.model || '') + ' · VIN ' + d.vehicle.vin;
+  document.getElementById('whenLine').textContent = d.booking.scheduled_start ? 'Scheduled ' + new Date(d.booking.scheduled_start).toLocaleString('en-US', {weekday:'long', month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) + ' · ' + d.client.address + ', ' + d.client.city + ' ' + d.client.state : '';
+  const custom = !!d.custom;
+  const priced = Number(t.total) > 0;
+  document.getElementById('signTitle').textContent = custom ? 'Sign & pay deposit' : 'Sign & confirm your booking';
+  const rows = d.lines.map(l => '<tr><td>' + l.name + (l.note ? '<div class="muted">' + l.note + '</div>' : '') + '</td><td class="r">' + (l.needsQuote && !l.unit ? 'By VIN' : money(l.unit)) + '</td></tr>').join('');
+  document.getElementById('lines').innerHTML = rows +
+    '<tr><td>Subtotal</td><td class="r">' + money(t.subtotal) + '</td></tr>' +
+    (t.discount ? '<tr><td>Discount</td><td class="r">-' + money(t.discount) + '</td></tr>' : '') +
+    (t.tax ? '<tr><td>NJ sales tax on parts</td><td class="r">' + money(t.tax) + '</td></tr>' : '') +
+    '<tr class="total"><td>Total</td><td class="r">' + money(t.total) + '</td></tr>' +
+    (custom && !priced
+      ? '<tr><td class="muted" style="font-size:13px">Custom build — I price it after reviewing your details, then send the deposit invoice.</td><td></td></tr>'
+      : custom && t.deposit
+      ? '<tr class="deposit"><td>Deposit to order parts (' + (t.depositPercent || 25) + '%)</td><td class="r">' + money(t.deposit) + '</td></tr>' +
+        '<tr><td class="muted">Balance at completion</td><td class="r muted">' + money(t.balance) + '</td></tr>'
+      : '<tr><td class="muted">Due at completion</td><td class="r muted">' + money(t.total) + '</td></tr>' +
+        '<tr><td class="muted" style="font-size:13px">No deposit — you pay when the work is done.</td><td></td></tr>');
+  document.getElementById('termsBox').innerHTML = mdToHtml(d.terms.body || '');
+  const acks = d.acknowledgments || [];
+  if (acks.length) {
+    document.getElementById('ackList').innerHTML = '<div style="font-size:13px;font-weight:600;margin-bottom:6px">By signing, I confirm that:</div>' +
+      '<ul style="margin:0 0 0 18px;padding:0;font-size:13.5px;color:#3b4653">' + acks.map(a => '<li style="margin-bottom:5px">' + a + '</li>').join('') + '</ul>';
+  }
+  const qs = (d.questions || []).filter(q => q.id !== 'photos');
+  const ans = d.answers || {};
+  if (qs.length) {
+    document.getElementById('detailsBox').innerHTML = '<h2 style="margin-top:6px">Your details</h2>' +
+      qs.map(q => '<div class="muted" style="margin-bottom:6px"><strong style="color:#0B0B0D">' + q.label + '</strong><br>' +
+        (ans[q.id] || '—') + '</div>').join('');
+  }
+  document.getElementById('foot').innerHTML = d.shop.name + ' · ' + d.shop.phone + ' · <a href="mailto:' + d.shop.email + '">' + d.shop.email + '</a><br>Terms version ' + (d.terms.version || '') + ' · prices are starting points and vary by model and parts. Final quote before work begins.';
+  if (p.status === 'signed') {
+    document.getElementById('signCard').hidden = true;
+    document.getElementById('doneCard').hidden = false;
+    document.getElementById('doneSub').textContent = custom
+      ? 'Your agreement is on file. The deposit orders the parts and locks the date.'
+      : 'Your agreement is on file and your date is booked. You pay when the work is done.';
+    document.getElementById('depositBox').innerHTML = '<div class="muted">Signed by ' + (p.signature_name || '') + ' on ' + new Date(p.signed_at).toLocaleString('en-US') + '</div>';
+  }
+  setupSign();
+}
+
+// --- signature pad
+let pad, ctx, drawing = false, dirty = false;
+function setupSign() {
+  pad = document.getElementById('sigpad');
+  if (!pad) return;
+  const ratio = window.devicePixelRatio || 1;
+  pad.width = pad.clientWidth * ratio; pad.height = pad.clientHeight * ratio;
+  ctx = pad.getContext('2d'); ctx.scale(ratio, ratio);
+  ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.strokeStyle = '#0B0B0D';
+  const pos = e => { const r = pad.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  pad.addEventListener('pointerdown', e => { drawing = true; ctx.beginPath(); ctx.moveTo(...pos(e)); pad.setPointerCapture(e.pointerId); });
+  pad.addEventListener('pointermove', e => { if (!drawing) return; ctx.lineTo(...pos(e)); ctx.stroke(); dirty = true; update(); });
+  pad.addEventListener('pointerup', () => drawing = false);
+  pad.addEventListener('pointerleave', () => drawing = false);
+  document.getElementById('clearSig').onclick = () => { ctx.clearRect(0, 0, pad.width, pad.height); dirty = false; update(); };
+  document.getElementById('consent').onchange = update;
+  document.getElementById('readAll').onchange = update;
+  document.getElementById('signName').oninput = update;
+  document.getElementById('signBtn').onclick = submit;
+}
+function update() {
+  const read = document.getElementById('readAll').checked;
+  const agree = document.getElementById('consent').checked;
+  const named = document.getElementById('signName').value.trim().length > 1;
+  document.getElementById('signBtn').disabled = !(dirty && read && agree && named);
+  document.getElementById('ackHint').textContent = !read ? 'Check the Terms and Conditions box to continue.'
+    : !agree ? 'Check the electronic signature box to continue.'
+    : !dirty ? 'Draw your signature above.'
+    : !named ? 'Type your full legal name.' : '';
+}
+async function submit() {
+  const btn = document.getElementById('signBtn');
+  btn.disabled = true; btn.textContent = 'Signing…';
+  const body = {
+    name: document.getElementById('signName').value.trim(),
+    consent: true,
+    acknowledged: document.getElementById('readAll').checked,
+    image: pad.toDataURL('image/png')
+  };
+  try {
+    const r = await fetch('/api/p/' + TOKEN + '/sign', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Could not sign');
+    document.getElementById('signCard').hidden = true;
+    document.getElementById('doneCard').hidden = false;
+    document.getElementById('doneSub').textContent = d.depositRequired
+      ? 'Your agreement is on file. The deposit orders the parts and locks the date.'
+      : 'Your agreement is on file and your date is booked. You pay when the work is done.';
+    document.getElementById('depositBox').innerHTML = (d.invoice
+      ? '<div>Deposit invoice <strong>' + d.invoice.number + '</strong> · ' + money(d.invoice.amountDue) + '</div>' +
+        '<div style="margin-top:12px"><a href="' + new URL(d.invoice.link).pathname + '"><button>Pay deposit</button></a></div>'
+      : '<div class="muted">Confirmation email is on its way with your date and what to expect.</div>') +
+      '<div class="muted" style="margin-top:10px">Confirmation #' + d.signedHash.slice(0, 12) + '</div>';
+    document.getElementById('statusPill').textContent = 'Signed';
+    document.getElementById('statusPill').classList.add('signed');
+  } catch (e) {
+    btn.disabled = false; btn.textContent = 'Sign & book it';
+    document.getElementById('signHint').textContent = e.message;
+    document.getElementById('signHint').style.color = '#b42318';
+  }
+}
+
+fetch('/api/p/' + TOKEN).then(r => r.json()).then(d => {
+  if (d.error) { document.getElementById('statusPill').textContent = 'Link not found'; return; }
+  render(d);
+});
+</script>
+</body>
+</html>

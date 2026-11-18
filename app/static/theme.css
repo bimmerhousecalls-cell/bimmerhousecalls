@@ -1,0 +1,8 @@
+/* Bimmer House Calls brand palette — mirrored from data/services.json -> shop.theme
+   primary #FFD400 · contrast #0B0B0D · nav #0B0B0D + white text · CTA #FFD400 + #0B0B0D text */
+:root{
+  --ink:#0B0B0D; --accent:#FFD400; --accent-2:#E6BF00; --accent-ink:#0B0B0D;
+  --nav-bg:#0B0B0D; --nav-ink:#c9cdd4; --nav-on:#1d1d22;
+  --bg:#f6f8fa; --card:#fff; --line:#e3e7ec; --mut:#5b6470;
+  --ok:#0a7d43; --warn:#b25e00; --bad:#b42318;
+}

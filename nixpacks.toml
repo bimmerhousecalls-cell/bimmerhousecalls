@@ -1,0 +1,9 @@
+# Tells Railway/Nixpacks this is a plain Python app with no packages to install.
+[phases.setup]
+nixPkgs = ["python312"]
+
+[phases.install]
+cmds = ["python -m venv --copies /opt/venv && . /opt/venv/bin/activate"]
+
+[start]
+cmd = "python -m app.api.server"

@@ -1,0 +1,731 @@
+{
+  "_note": "Catalog seeded from bimmerhousecalls.netlify.app. min/max are the published starting points; quote=true means 'Quoted individually' on the site. laborHours is the booking slot length used for scheduling. All values are editable in the admin.",
+  "shop": {
+    "name": "Bimmer House Calls",
+    "phone": "(732) 890-8458",
+    "email": "bimmerhousecalls@gmail.com",
+    "website": "https://bimmerhousecalls.netlify.app/",
+    "baseAddress": "Surf City, Long Beach Island, NJ",
+    "baseLat": 39.6621,
+    "baseLng": -74.1704,
+    "baseZip": "08008",
+    "tagline": "Mobile BMW service, performance & tuning at your door.",
+    "taxRateNJ": 0.06625,
+    "taxAppliesToLabor": false,
+    "depositPercent": 0,
+    "depositMinimum": 50,
+    "currency": "USD",
+    "serviceArea": "Long Beach Island and all of New Jersey",
+    "depositPercentCustom": 25,
+    "hours": {
+      "0": [],
+      "1": [
+        [
+          "07:00",
+          "17:00"
+        ]
+      ],
+      "2": [
+        [
+          "07:00",
+          "17:00"
+        ]
+      ],
+      "3": [
+        [
+          "07:00",
+          "17:00"
+        ]
+      ],
+      "4": [
+        [
+          "07:00",
+          "17:00"
+        ]
+      ],
+      "5": [
+        [
+          "06:00",
+          "15:00"
+        ]
+      ],
+      "6": [
+        [
+          "06:00",
+          "15:00"
+        ]
+      ]
+    },
+    "hoursLabel": "Mon–Thu 7am–5pm · Fri–Sat 6am–3pm · Sunday closed",
+    "slotMinutes": 150,
+    "accepts": [
+      "Credit / debit card",
+      "Cash",
+      "Zelle",
+      "Check"
+    ],
+    "termsEffectiveDate": "2026-01-01",
+    "termsContactCounty": "Ocean County",
+    "quoteValidDays": 7,
+    "cancelHours": 24,
+    "lateFeePercent": 1.5,
+    "laborWarrantyDays": 30,
+    "theme": {
+      "ink": "#0B0B0D",
+      "muted": "#5b6470",
+      "line": "#e5e8ec",
+      "accent": "#FFD400",
+      "accent2": "#E6BF00",
+      "accentInk": "#0B0B0D",
+      "ok": "#0a7d43",
+      "warn": "#b25e00",
+      "bad": "#b42318",
+      "bg": "#f6f8fa",
+      "navBg": "#0B0B0D",
+      "navInk": "#c9cdd4",
+      "navOn": "#1d1d22"
+    },
+    "termsBeforeSubmit": true,
+    "logo": {
+      "file": "/brand/logo.svg",
+      "card": "/brand/logo-card.svg",
+      "wordmark": [
+        "BIMMER",
+        "HOUSE CALLS"
+      ],
+      "tagline": "Mobile BMW service · performance · tuning"
+    }
+  },
+  "travel": {
+    "freeMiles": 30,
+    "tiers": [
+      {
+        "upToMiles": 30,
+        "perMile": 0
+      },
+      {
+        "upToMiles": 60,
+        "perMile": 0.75
+      },
+      {
+        "upToMiles": null,
+        "perMile": 1.5
+      }
+    ],
+    "perMileAfterFree": 0,
+    "minimumFee": 0,
+    "maxDriveMiles": 120,
+    "roundTrip": false,
+    "zones": [],
+    "driveTimeValuePerHour": 45,
+    "afterHoursSurcharge": 0,
+    "weekendSurcharge": 0,
+    "avgMph": 38,
+    "roadFactor": 1.25
+  },
+  "categories": [
+    {
+      "id": "tuning",
+      "name": "Tuning & ECU Performance",
+      "blurb": "Stage 1 and Stage 2 tunes, ECU unlocks, and datalog tuning. Send your VIN to confirm what your car needs.",
+      "items": [
+        {
+          "id": "ecu-bench-unlock",
+          "name": "ECU bench unlock",
+          "desc": "ECU removed, unlocked on the bench, and reinstalled so it's ready to flash.",
+          "min": 200,
+          "max": 200,
+          "quote": false,
+          "laborHours": 3,
+          "requiresVin": true,
+          "addon": false
+        },
+        {
+          "id": "stage1-tune",
+          "name": "Stage 1 flash tune",
+          "desc": "Plus tune license.",
+          "min": 150,
+          "max": 300,
+          "quote": false,
+          "laborHours": 2,
+          "requiresVin": true,
+          "addon": false
+        },
+        {
+          "id": "stage2-tune",
+          "name": "Stage 2 tune",
+          "desc": "With supporting mods.",
+          "min": 250,
+          "max": 450,
+          "quote": false,
+          "laborHours": 3,
+          "requiresVin": true,
+          "addon": false
+        },
+        {
+          "id": "datalog-review",
+          "name": "Datalog review & revision",
+          "desc": "Fine-tune an existing tune.",
+          "min": 75,
+          "max": 150,
+          "quote": false,
+          "laborHours": 1,
+          "requiresVin": true,
+          "addon": false
+        }
+      ]
+    },
+    {
+      "id": "exhaust",
+      "name": "Downpipes & Exhaust",
+      "blurb": "Labor pricing. Bring your parts or I'll source them.",
+      "items": [
+        {
+          "id": "downpipe-install",
+          "name": "Downpipe install",
+          "desc": "Better exhaust flow, more power.",
+          "min": 300,
+          "max": 500,
+          "quote": false,
+          "laborHours": 4,
+          "requiresVin": true,
+          "addon": false
+        },
+        {
+          "id": "catback-install",
+          "name": "Catback / exhaust install",
+          "desc": "Sound and flow upgrade.",
+          "min": null,
+          "max": null,
+          "quote": true,
+          "laborHours": 4,
+          "requiresVin": true,
+          "addon": false
+        }
+      ]
+    },
+    {
+      "id": "intake",
+      "name": "Air Intake",
+      "blurb": "Better airflow and sound.",
+      "items": [
+        {
+          "id": "air-intake-install",
+          "name": "Air intake install",
+          "desc": "Better airflow and sound.",
+          "min": 100,
+          "max": 200,
+          "quote": false,
+          "laborHours": 1.5,
+          "requiresVin": true,
+          "addon": false
+        },
+        {
+          "id": "charge-pipe-install",
+          "name": "Charge pipe install",
+          "desc": "Stronger than the stock plastic pipe.",
+          "min": 150,
+          "max": 250,
+          "quote": false,
+          "laborHours": 2,
+          "requiresVin": true,
+          "addon": false
+        }
+      ]
+    },
+    {
+      "id": "cooling",
+      "name": "Cooling",
+      "blurb": "Cooler air, consistent power.",
+      "items": [
+        {
+          "id": "intercooler-install",
+          "name": "Intercooler install",
+          "desc": "Cooler air, consistent power.",
+          "min": 300,
+          "max": 500,
+          "quote": false,
+          "laborHours": 4,
+          "requiresVin": true,
+          "addon": false
+        },
+        {
+          "id": "heat-exchanger",
+          "name": "Heat exchanger",
+          "desc": "Better cooling for the intake air.",
+          "min": null,
+          "max": null,
+          "quote": true,
+          "laborHours": 4,
+          "requiresVin": true,
+          "addon": false
+        },
+        {
+          "id": "radiator",
+          "name": "Radiator",
+          "desc": "Reliable engine cooling.",
+          "min": null,
+          "max": null,
+          "quote": true,
+          "laborHours": 4,
+          "requiresVin": true,
+          "addon": false
+        },
+        {
+          "id": "oil-cooler",
+          "name": "Oil cooler",
+          "desc": "Keeps oil temps in check.",
+          "min": null,
+          "max": null,
+          "quote": true,
+          "laborHours": 5,
+          "requiresVin": true,
+          "addon": false
+        },
+        {
+          "id": "water-pump-thermostat",
+          "name": "Water pump & thermostat",
+          "desc": "Dependable cooling system.",
+          "min": null,
+          "max": null,
+          "quote": true,
+          "laborHours": 5,
+          "requiresVin": true,
+          "addon": false
+        }
+      ]
+    },
+    {
+      "id": "suspension",
+      "name": "Suspension",
+      "blurb": "Sharper handling, lower stance.",
+      "items": [
+        {
+          "id": "coilovers",
+          "name": "Coilovers / lowering springs",
+          "desc": "Sharper handling, lower stance.",
+          "min": 500,
+          "max": 900,
+          "quote": false,
+          "laborHours": 6,
+          "requiresVin": true,
+          "needsLift": true,
+          "addon": false
+        }
+      ]
+    },
+    {
+      "id": "cosmetic",
+      "name": "Cosmetic",
+      "blurb": "Make it look as good as it drives. Cosmetic installs are quoted by car, so send your VIN and what you have in mind.",
+      "items": [
+        {
+          "id": "grilles",
+          "name": "Grilles",
+          "desc": "Gloss black and more.",
+          "min": null,
+          "max": null,
+          "quote": true,
+          "laborHours": 1.5,
+          "requiresVin": true,
+          "addon": false
+        },
+        {
+          "id": "mirror-caps",
+          "name": "Mirror caps",
+          "desc": "Carbon, gloss black, and more.",
+          "min": null,
+          "max": null,
+          "quote": true,
+          "laborHours": 1,
+          "requiresVin": true,
+          "addon": false
+        },
+        {
+          "id": "front-lip",
+          "name": "Front lip / splitter",
+          "desc": "A sharper front end.",
+          "min": null,
+          "max": null,
+          "quote": true,
+          "laborHours": 2,
+          "requiresVin": true,
+          "addon": false
+        },
+        {
+          "id": "rear-diffuser",
+          "name": "Rear diffuser / spoiler",
+          "desc": "Finish the look.",
+          "min": null,
+          "max": null,
+          "quote": true,
+          "laborHours": 2,
+          "requiresVin": true,
+          "addon": false
+        },
+        {
+          "id": "badge-swap",
+          "name": "Badge / roundel swap",
+          "desc": "Custom badges.",
+          "min": null,
+          "max": null,
+          "quote": true,
+          "laborHours": 1,
+          "requiresVin": true,
+          "addon": false
+        },
+        {
+          "id": "headlight-mods",
+          "name": "Headlight & DRL lighting mods",
+          "desc": "Make your lights stand out.",
+          "min": null,
+          "max": null,
+          "quote": true,
+          "laborHours": 3,
+          "requiresVin": true,
+          "addon": false
+        }
+      ]
+    },
+    {
+      "id": "starlights",
+      "name": "Starlights",
+      "blurb": "Turn your BMW's headliner into a night sky. Send your VIN and whether your car has a sunroof.",
+      "items": [
+        {
+          "id": "starlight-headliner",
+          "name": "Starlight headliner install",
+          "desc": "Fiber-optic stars across your BMW's headliner.",
+          "min": null,
+          "max": null,
+          "quote": true,
+          "laborHours": 8,
+          "requiresVin": true,
+          "askSunroof": true,
+          "addon": false
+        },
+        {
+          "id": "starlight-twinkle",
+          "name": "Twinkle effect",
+          "desc": "Add-on, ask for details.",
+          "min": null,
+          "max": null,
+          "quote": true,
+          "laborHours": 1,
+          "requiresVin": true,
+          "addon": true
+        },
+        {
+          "id": "starlight-shooting",
+          "name": "Shooting star effect",
+          "desc": "Add-on, ask for details.",
+          "min": null,
+          "max": null,
+          "quote": true,
+          "laborHours": 1,
+          "requiresVin": true,
+          "addon": true
+        }
+      ]
+    },
+    {
+      "id": "maintenance",
+      "name": "Maintenance",
+      "blurb": "Keep it healthy between big jobs.",
+      "items": [
+        {
+          "id": "oil-service",
+          "name": "Oil service",
+          "desc": "Filter + up to 7 qts synthetic.",
+          "min": 150,
+          "max": 250,
+          "quote": false,
+          "laborHours": 1,
+          "requiresVin": true,
+          "partsIncluded": true,
+          "addon": false
+        },
+        {
+          "id": "brake-pads-rotors",
+          "name": "Brake pads & rotors",
+          "desc": "Per axle, plus parts.",
+          "min": 350,
+          "max": 600,
+          "quote": false,
+          "laborHours": 3,
+          "requiresVin": true,
+          "addon": false
+        },
+        {
+          "id": "spark-plugs",
+          "name": "Spark plugs",
+          "desc": "Full set, 6-cylinder.",
+          "min": 250,
+          "max": 400,
+          "quote": false,
+          "laborHours": 2,
+          "requiresVin": true,
+          "addon": false
+        },
+        {
+          "id": "coolant-flush",
+          "name": "Coolant flush",
+          "desc": "Fresh coolant, full refill.",
+          "min": 150,
+          "max": 225,
+          "quote": false,
+          "laborHours": 1.5,
+          "requiresVin": true,
+          "addon": false
+        },
+        {
+          "id": "ppi",
+          "name": "Pre-purchase inspection",
+          "desc": "Know before you buy.",
+          "min": 150,
+          "max": 250,
+          "quote": false,
+          "laborHours": 2,
+          "requiresVin": true,
+          "addon": false
+        },
+        {
+          "id": "diagnostics",
+          "name": "Diagnostics & code scan",
+          "desc": "Find the cause of warning lights.",
+          "min": 100,
+          "max": 150,
+          "quote": false,
+          "laborHours": 1,
+          "requiresVin": true,
+          "addon": false
+        }
+      ]
+    },
+    {
+      "id": "repairs",
+      "name": "Repairs",
+      "blurb": "Quoted individually because parts and time vary by model and engine. Send your VIN for a price.",
+      "items": [
+        {
+          "id": "valve-cover-gasket",
+          "name": "Valve cover gasket",
+          "desc": "Stops oil leaks and burning smell.",
+          "min": null,
+          "max": null,
+          "quote": true,
+          "laborHours": 5,
+          "requiresVin": true,
+          "addon": false
+        },
+        {
+          "id": "ofhg",
+          "name": "Oil filter housing gasket",
+          "desc": "Stops oil and coolant leaks.",
+          "min": null,
+          "max": null,
+          "quote": true,
+          "laborHours": 5,
+          "requiresVin": true,
+          "addon": false
+        },
+        {
+          "id": "water-pump-repair",
+          "name": "Water pump & thermostat",
+          "desc": "Keeps your engine at the right temperature.",
+          "min": null,
+          "max": null,
+          "quote": true,
+          "laborHours": 5,
+          "requiresVin": true,
+          "addon": false
+        },
+        {
+          "id": "vanos-solenoids",
+          "name": "VANOS solenoids",
+          "desc": "Restores smooth idle and response.",
+          "min": null,
+          "max": null,
+          "quote": true,
+          "laborHours": 3,
+          "requiresVin": true,
+          "addon": false
+        },
+        {
+          "id": "ignition-coils",
+          "name": "Ignition coils",
+          "desc": "Fixes misfires and rough running.",
+          "min": null,
+          "max": null,
+          "quote": true,
+          "laborHours": 2,
+          "requiresVin": true,
+          "addon": false
+        }
+      ]
+    }
+  ],
+  "addons": [
+    {
+      "id": "add-cabin-filter",
+      "group": "Maintenance add-ons",
+      "name": "Cabin air filter",
+      "desc": "Cleaner air inside the car.",
+      "min": 40,
+      "max": 80,
+      "quote": false,
+      "laborHours": 0.5
+    },
+    {
+      "id": "add-engine-filter",
+      "group": "Maintenance add-ons",
+      "name": "Engine air filter",
+      "desc": "Helps your engine breathe.",
+      "min": 40,
+      "max": 80,
+      "quote": false,
+      "laborHours": 0.25
+    },
+    {
+      "id": "add-wipers",
+      "group": "Maintenance add-ons",
+      "name": "Wiper blades",
+      "desc": "Clear view in the rain.",
+      "min": 30,
+      "max": 60,
+      "quote": false,
+      "laborHours": 0.25
+    },
+    {
+      "id": "add-brake-fluid",
+      "group": "Maintenance add-ons",
+      "name": "Brake fluid flush",
+      "desc": "Fresh fluid for firm braking.",
+      "min": 100,
+      "max": 150,
+      "quote": false,
+      "laborHours": 1
+    },
+    {
+      "id": "add-tire-rotation",
+      "group": "Maintenance add-ons",
+      "name": "Tire rotation",
+      "desc": "Even tire wear.",
+      "min": 40,
+      "max": 60,
+      "quote": false,
+      "laborHours": 0.5
+    },
+    {
+      "id": "add-mpi",
+      "group": "Maintenance add-ons",
+      "name": "Multi-point inspection",
+      "desc": "Fluids, brakes, belts, and more.",
+      "min": 50,
+      "max": 75,
+      "quote": false,
+      "laborHours": 0.5
+    },
+    {
+      "id": "add-spark-refresh",
+      "group": "Performance add-ons",
+      "name": "Spark plug refresh",
+      "desc": "Add to any tune.",
+      "min": 250,
+      "max": 400,
+      "quote": false,
+      "laborHours": 2
+    },
+    {
+      "id": "add-oil-before-tune",
+      "group": "Performance add-ons",
+      "name": "Oil service before a tune",
+      "desc": "Fresh oil for a healthier engine.",
+      "min": 150,
+      "max": 250,
+      "quote": false,
+      "laborHours": 1
+    },
+    {
+      "id": "add-datalog-check",
+      "group": "Performance add-ons",
+      "name": "Datalog check after a tune",
+      "desc": "Make sure it's running right.",
+      "min": 75,
+      "max": 150,
+      "quote": false,
+      "laborHours": 1
+    },
+    {
+      "id": "add-bench-unlock",
+      "group": "Performance add-ons",
+      "name": "ECU bench unlock",
+      "desc": "Add when your car needs it for a tune.",
+      "min": 200,
+      "max": 200,
+      "quote": false,
+      "laborHours": 3
+    }
+  ],
+  "packages": [
+    {
+      "id": "pkg-essential",
+      "name": "Package 1 · Essential Service",
+      "desc": "Oil change, filter replacement, spark plugs, fluid top-off.",
+      "min": 500,
+      "max": 800,
+      "laborHours": 3,
+      "requiresVin": true,
+      "includes": [
+        "oil-service",
+        "spark-plugs",
+        "add-engine-filter"
+      ],
+      "bullets": [
+        "Oil change",
+        "Filter replacement",
+        "Spark plugs",
+        "Fluid top-off"
+      ]
+    },
+    {
+      "id": "pkg-complete",
+      "name": "Package 2 · Complete Service",
+      "desc": "Oil change, filter replacement, spark plugs, coolant flush, fluid top-off.",
+      "min": 650,
+      "max": 1000,
+      "laborHours": 4,
+      "requiresVin": true,
+      "includes": [
+        "oil-service",
+        "spark-plugs",
+        "coolant-flush",
+        "add-engine-filter"
+      ],
+      "bullets": [
+        "Oil change",
+        "Filter replacement",
+        "Spark plugs",
+        "Coolant flush",
+        "Fluid top-off"
+      ]
+    },
+    {
+      "id": "pkg-annual",
+      "name": "Package 3 · Recurring Annual Plan",
+      "desc": "Service visits scheduled throughout the year. Stay maintained all year without rebooking.",
+      "min": 1200,
+      "max": 1800,
+      "laborHours": 3,
+      "requiresVin": true,
+      "recurring": "annual",
+      "includes": [
+        "oil-service"
+      ],
+      "bullets": [
+        "Service visits scheduled throughout the year",
+        "Stay maintained all year without rebooking"
+      ]
+    }
+  ]
+}

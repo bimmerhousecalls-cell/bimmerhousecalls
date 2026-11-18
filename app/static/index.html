@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Book mobile BMW service · Bimmer House Calls</title>
+<style>
+  :root{--ink:#0B0B0D;--mut:#5b6470;--line:#e3e7ec;--accent:#FFD400;--accent-2:#E6BF00;--accent-ink:#0B0B0D;--ok:#0a7d43;--bg:#f6f8fa;--card:#fff}
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,sans-serif;color:var(--ink);background:var(--bg)}
+  a{color:#8a6d00}
+  .wrap{max-width:820px;margin:0 auto;padding:20px 16px 120px}
+  header.top{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 0 18px;flex-wrap:wrap}
+  .brandlink{display:inline-block;background:#0B0B0D;border-radius:12px;padding:6px 12px}
+  .brandlink img{height:56px}
+  .sub{color:var(--mut);font-size:13px}
+  .call{font-weight:700;text-decoration:none;border:1px solid #E6BF00;padding:8px 14px;border-radius:999px;background:var(--accent);font-size:14px;color:var(--accent-ink)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:14px}
+  h1{font-size:24px;margin:0 0 6px;letter-spacing:-.02em}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin:0 0 12px}
+  .muted{color:var(--mut);font-size:14px}
+  /* tabs */
+  .tabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;padding:6px;background:#fff;border:1px solid var(--line);border-radius:14px;margin-bottom:12px}
+  .tab{padding:10px 12px;border-radius:10px;font-size:13.5px;font-weight:600;cursor:pointer;border:0;background:#f4f6f9;color:#3b4653;white-space:nowrap;text-align:left}
+  .tab:hover{background:#e9eef5}
+  .tab.on{background:var(--ink);color:var(--accent)}
+  @media(max-width:560px){.tabs{grid-template-columns:repeat(2,1fr)}}
+  .tab .n{font-weight:400;opacity:.6;margin-left:4px}
+  .item{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:13px 14px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;cursor:pointer;background:#fff;transition:.12s}
+  .item:hover{border-color:#c7d2e0}
+  .item.on{border-color:#E6BF00;background:#FFFCEB;box-shadow:0 0 0 1.5px var(--accent) inset}
+  .item .nm{font-weight:600;font-size:15px}
+  .item .ds{color:var(--mut);font-size:13px}
+  .item .pr{font-weight:700;font-size:14px;white-space:nowrap;text-align:right}
+  .item .pr small{font-weight:500;color:var(--mut)}
+  .tick{width:20px;height:20px;border-radius:6px;border:1.5px solid #c7d2e0;flex:0 0 auto;display:grid;place-items:center;font-size:12px;color:var(--accent-ink)}
+  .item.on .tick{background:var(--accent);border-color:#E6BF00;font-weight:800}
+  label{display:block;font-size:13px;font-weight:600;margin:12px 0 5px}
+  input,select,textarea{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;background:#fff}
+  textarea{min-height:84px;resize:vertical}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{border:1px solid var(--line);border-radius:999px;padding:8px 13px;font-size:13px;cursor:pointer;background:#fff}
+  .chip.on{background:#FFFCEB;border-color:#E6BF00;color:#0B0B0D;font-weight:700}
+  .qbox{background:#fbfcfe;border:1px dashed #cfd8e3;border-radius:12px;padding:12px 14px;margin-top:12px}
+  .qbox .hint{color:var(--mut);font-size:12.5px;margin-top:2px}
+  table{width:100%;border-collapse:collapse}
+  td,th{padding:7px 0;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;font-size:14.5px}
+  td.r{text-align:right;white-space:nowrap}
+  tr.total td{border:0;font-weight:800;font-size:18px;padding-top:12px}
+  tr.small td{border:0;color:var(--mut);font-size:13px;padding:3px 0}
+  .travelbox{background:#FFFBEA;border:1px solid #FFE97A;border-radius:12px;padding:14px;font-size:14px;line-height:1.5}
+  .travelbox b{font-size:16px}
+  .sticky{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:12px 16px;box-shadow:0 -6px 20px rgba(13,17,23,.06);z-index:20}
+  .sticky .inner{max-width:820px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:14px}
+  .sticky .sum{font-size:13px;color:var(--mut)}
+  .sticky .sum b{display:block;font-size:20px;color:var(--ink)}
+  button.primary{font:inherit;font-weight:800;border:0;border-radius:12px;padding:14px 22px;background:var(--accent);color:var(--accent-ink);cursor:pointer}
+  button.primary:hover{background:var(--accent-2)}
+  button.primary:disabled{opacity:.45;cursor:not-allowed}
+  .err{color:#b42318;font-size:14px;margin-top:8px}
+  .badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:#FFF6C2;color:#5a4a00;margin-left:6px;vertical-align:2px}
+  .badge.quote{background:#fff4e5;color:#b25e00}
+  .step{display:flex;gap:10px;align-items:baseline;margin-bottom:6px}
+  .step .n{width:22px;height:22px;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;flex:0 0 auto}
+  @media(max-width:560px){
+    .grid{grid-template-columns:1fr}h1{font-size:21px}.sticky .sum b{font-size:17px}
+    .item{flex-wrap:wrap}.item .pr{width:100%;text-align:left;padding-left:30px;font-size:13px;color:var(--mut)}
+    .card{padding:14px;border-radius:14px}.wrap{padding:14px 12px 110px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <a href="/" class="brandlink"><img src="/brand/logo.svg" alt="Bimmer House Calls" style="height:56px;display:block"></a>
+      <div class="sub">Mobile BMW service, performance &amp; tuning · based in Surf City, LBI · all of NJ</div>
+    </div>
+    <a class="call" href="tel:+17328908458">(732) 890-8458</a>
+  </header>
+
+  <div class="card">
+    <h1>Book your visit</h1>
+    <div class="muted">Pick a category, choose what you need, enter your VIN and address — your travel fee and drive time show up as you go. VIN required for every quote.</div>
+  </div>
+
+  <!-- 1 · services -->
+  <div class="card">
+    <div class="step"><span class="n">1</span><h2 style="margin:0">What do you need?</h2></div>
+    <div class="chips" id="modes" style="margin-bottom:12px">
+      <span class="chip on" data-mode="menu">Menu services</span>
+      <span class="chip" data-mode="custom">Custom build</span>
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <div id="items"></div>
+
+  </div>
+
+  <!-- 2 · questions (only what the selection needs) -->
+  <div class="card" id="questionsCard" hidden>
+    <div class="step"><span class="n">2</span><h2 style="margin:0">A couple of details</h2></div>
+    <div id="questions"></div>
+  </div>
+
+  <!-- 3 · car + place + when -->
+  <div class="card">
+    <div class="step"><span class="n">3</span><h2 style="margin:0">Your car, address &amp; date</h2></div>
+    <div class="grid">
+      <div><label>VIN (17 characters)</label><input id="vin" maxlength="17" placeholder="WBA3A5C55CF256789" autocapitalize="characters" style="text-transform:uppercase;letter-spacing:.06em"></div>
+      <div><label>Model / engine</label><input id="model" placeholder="2012 335i N55"></div>
+    </div>
+    <label>Service address</label><input id="address" placeholder="12 Ocean Ave" autocomplete="street-address">
+    <div class="grid">
+      <div><label>City</label><input id="city" placeholder="Point Pleasant" autocomplete="address-level2"></div>
+      <div><label>ZIP</label><input id="zip" placeholder="08742" inputmode="numeric" maxlength="5" autocomplete="postal-code"></div>
+    </div>
+    <label>Date &amp; time</label>
+    <div class="grid">
+      <div><input type="date" id="date"></div>
+      <div><select id="time"><option>Loading times…</option></select></div>
+    </div>
+    <div id="hoursLine" class="muted" style="margin-top:6px"></div>
+    <div id="avail" class="muted" style="margin-top:8px"></div>
+    <div class="travelbox" id="travelBox" style="margin-top:14px">Enter your ZIP or city to see the travel fee and drive time.</div>
+  </div>
+
+  <!-- 4 · contact -->
+  <div class="card">
+    <div class="step"><span class="n">4</span><h2 style="margin:0">Where do I send the quote?</h2></div>
+    <div class="grid">
+      <div><label>Name</label><input id="name" autocomplete="name"></div>
+      <div><label>Phone</label><input id="phone" autocomplete="tel" inputmode="tel"></div>
+    </div>
+    <label>Email</label><input id="email" type="email" autocomplete="email" placeholder="you@email.com">
+    <label>Anything else?</label><textarea id="notes" placeholder="Parts I'm bringing, symptoms, gate codes, anything I should know"></textarea>
+  </div>
+
+  <!-- 5 · terms + signature before sending -->
+  <div class="card" id="agreeCard">
+    <div class="step"><span class="n">5</span><h2 style="margin:0">Agree to the terms</h2></div>
+    <div class="muted" style="margin-bottom:10px">Scroll through the Terms and Conditions, tick the box, and sign. Nothing is sent or booked until you do.</div>
+    <div id="termsScroll" style="max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:14px;font-size:13.5px;background:#fcfcfd;white-space:pre-wrap"></div>
+    <label style="display:flex;gap:10px;align-items:flex-start;font-size:13.5px;margin-top:12px"><input type="checkbox" id="readAll" style="width:18px;height:18px;margin-top:2px"> <span><b>I have read and agree to the Terms and Conditions</b>, including the Customer Acknowledgment and Waiver and the tuning / ECU unlocking risks.</span></label>
+    <label style="display:flex;gap:10px;align-items:flex-start;font-size:13.5px"><input type="checkbox" id="consent" style="width:18px;height:18px;margin-top:2px"> <span>I agree my electronic signature is legally binding and is recorded with the date, time, IP and a hash of this document.</span></label>
+    <div class="grid" style="margin-top:10px">
+      <div><label>Type your full legal name</label><input id="signName" placeholder="Sarah Johnson" autocomplete="name"></div>
+      <div><label>Draw your signature</label><canvas id="sigpad" style="width:100%;height:76px;border:1px dashed #b8c0cc;border-radius:10px;background:#fff;touch-action:none"></canvas></div>
+    </div>
+    <div class="row" style="margin-top:6px"><button class="act" id="clearSig" style="font:inherit;font-size:12px;border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 10px;cursor:pointer">Clear signature</button><span id="agreeHint" class="muted"></span></div>
+  </div>
+
+  <!-- 6 · summary -->
+  <div class="card">
+    <div class="step"><span class="n">6</span><h2 style="margin:0">Your quote</h2></div>
+    <table id="quote"><tr><td class="muted">Nothing selected yet.</td></tr></table>
+    <div id="err" class="err"></div>
+    <div class="muted" style="margin-top:12px">Next: I send the quote with the terms to sign. Nothing is charged online — you pay when the work is done. Custom builds take a deposit to order parts.</div>
+  </div>
+</div>
+
+<div class="sticky"><div class="inner">
+  <div class="sum">Estimated total<b id="stickyTotal">—</b></div>
+  <button class="primary" id="submit" disabled>Send my request</button>
+</div></div>
+
+<script>
+const API = location.origin.startsWith('http') ? location.origin : '';
+const $ = id => document.getElementById(id);
+const prettyTime = v => {
+  if (!v || !v.includes(':')) return v || '';
+  const [h, m] = v.split(':').map(Number);
+  const ap = h >= 12 ? 'PM' : 'AM';
+  const hh = h % 12 === 0 ? 12 : h % 12;
+  return hh + ':' + String(m).padStart(2, '0') + ' ' + ap;
+};
+function why(d) {
+  const e = String((d && d.error) || '');
+  if (/isoformat|iso format|not enough values|invalid literal|NoneType|object has no|Traceback/i.test(e)) {
+    return 'Something went wrong on my end — try again, or call (732) 890-8458.';
+  }
+  return e || 'Something went wrong — try again, or call (732) 890-8458.';
+}
+const money = n => '$' + Number(n || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+const range = i => i.quote ? 'Quoted by VIN' : (i.min === i.max ? money(i.min) : money(i.min) + '–' + money(i.max));
+const state = {catalog: null, tab: null, items: [], addons: [], package: null, custom: false, quote: null, answers: {}};
+
+// NJ ZIP centroids so the travel fee works with no geocoder; swap for a geocode API later.
+const ZIPS = {"08008":[39.6621,-74.1704],"08006":[39.7504,-74.1304],"08092":[39.6604,-74.2904],"08742":[40.0832,-74.0682],
+"08724":[40.0925,-74.2185],"08731":[39.8693,-74.2557],"08734":[39.8643,-74.1696],"08735":[39.9498,-74.0721],
+"08751":[39.9573,-74.0715],"08752":[39.9368,-74.0921],"08753":[39.9773,-74.1968],"08755":[40.0132,-74.2229],
+"08757":[39.9768,-74.2521],"08758":[39.7937,-74.2302],"08759":[39.9387,-74.3446],"08701":[40.0925,-74.2185],
+"08721":[39.9557,-74.1732],"08723":[40.0418,-74.1293],"08730":[40.1034,-74.0657],"08736":[40.1154,-74.0532],
+"08738":[40.0254,-74.0543],"08741":[40.0043,-74.1357],"08750":[40.1143,-74.0410],"07701":[40.3487,-74.0765],
+"07702":[40.3526,-74.0707],"07712":[40.2406,-74.0204],"07720":[40.2021,-74.0132],"07731":[40.1398,-74.1937],
+"07746":[40.3198,-74.2568],"07747":[40.4123,-74.2349],"07751":[40.3418,-74.2657],"07753":[40.2098,-74.0646],
+"07755":[40.2587,-74.0404],"07756":[40.1793,-74.0204],"07757":[40.2987,-74.0079],"07762":[40.1523,-74.0282],
+"07716":[40.3904,-74.0357],"07717":[40.0957,-74.0157],"07718":[40.4157,-74.0857],"07719":[40.1704,-74.0404],
+"07721":[40.4204,-74.2404],"07722":[40.2904,-74.1704],"07724":[40.3004,-74.0904],"07726":[40.2821,-74.2977],
+"07727":[40.1901,-74.3529],"07728":[40.2443,-74.2765],"07730":[40.4287,-74.2004],"07733":[40.3873,-74.1729],
+"07737":[40.3987,-74.1107],"07739":[40.3404,-74.0457],"07740":[40.2957,-73.9907],"07748":[40.3957,-74.1157],
+"07750":[40.3632,-73.9929],"07760":[40.3668,-74.0004],"07764":[40.2901,-74.0132],"07732":[40.4004,-73.9957],
+"07734":[40.4404,-74.1204],"07735":[40.4404,-74.2004],"07738":[40.3457,-74.1304],"07758":[40.4004,-74.1204],
+"07763":[40.2904,-74.2604],"07799":[40.3604,-74.0904],"08527":[40.1004,-74.3157],"08501":[40.1618,-74.5757],
+"08510":[40.1834,-74.4204],"08514":[40.1423,-74.5004],"08526":[40.1693,-74.5157],"08533":[40.0704,-74.4829],
+"08535":[40.2334,-74.4404],"08801":[40.5712,-74.9782],"08802":[40.6587,-75.0104],"08804":[40.6529,-75.0962],
+"08809":[40.6498,-74.9282],"08810":[40.3743,-74.5204],"08812":[40.5904,-74.4957],"08816":[40.4287,-74.4157],
+"08817":[40.5157,-74.4029],"08820":[40.5757,-74.3704],"08824":[40.4387,-74.5404],"08828":[40.3604,-74.5457],
+"08830":[40.5704,-74.2657],"08831":[40.3404,-74.4457],"08832":[40.5204,-74.3157],"08835":[40.5457,-74.5329],
+"08837":[40.5257,-74.3457],"08840":[40.5457,-74.3557],"08844":[40.5057,-74.6257],"08846":[40.5704,-74.5004],
+"08850":[40.4404,-74.4457],"08852":[40.3904,-74.5557],"08854":[40.5157,-74.4704],"08857":[40.3904,-74.3457],
+"08859":[40.4557,-74.3004],"08861":[40.5257,-74.2657],"08863":[40.5057,-74.3157],"08872":[40.4604,-74.3557],
+"08876":[40.5704,-74.6257],"08879":[40.4404,-74.2657],"08882":[40.4804,-74.4557],"08884":[40.3904,-74.5004],
+"08886":[40.6657,-75.1157],"07001":[40.5804,-74.2757],"07008":[40.5757,-74.2404],"07036":[40.6257,-74.2404],
+"07047":[40.7904,-74.0204],"07060":[40.6157,-74.4157],"07062":[40.6157,-74.3957],"07063":[40.6004,-74.4404],
+"07064":[40.5457,-74.2457],"07065":[40.6057,-74.2857],"07066":[40.6157,-74.3157],"07067":[40.5904,-74.3204],
+"07080":[40.5704,-74.4157],"07081":[40.6804,-74.3204],"07083":[40.6957,-74.2657],"07088":[40.6904,-74.2857],
+"07090":[40.6457,-74.3457],"07092":[40.6804,-74.3557],"07095":[40.5557,-74.2857],"07111":[40.7257,-74.2304],
+"07201":[40.6757,-74.2004],"07203":[40.6557,-74.2604],"07204":[40.6657,-74.2657],"07205":[40.6957,-74.2404],
+"07206":[40.6557,-74.1857],"07208":[40.6757,-74.2157],"07302":[40.7204,-74.0457],"07304":[40.7157,-74.0704],
+"07305":[40.6957,-74.0857],"07306":[40.7357,-74.0657],"07307":[40.7504,-74.0557],"07310":[40.7304,-74.0357],
+"07601":[40.8904,-74.0504],"07620":[40.9504,-73.9204],"07624":[40.9704,-73.9604],"07626":[40.9404,-73.9604],
+"07627":[40.9557,-73.9557],"07628":[40.9557,-73.9904],"07630":[40.9757,-74.0204],"07631":[40.8904,-73.9757],
+"07632":[40.8857,-73.9904],"07640":[40.9904,-73.9804],"07641":[40.9657,-74.0104],"07642":[40.9904,-74.0404],
+"07643":[40.8557,-74.0404],"07644":[40.8757,-74.0804],"07645":[41.0457,-74.0557],"07646":[40.9304,-74.0204],
+"07647":[41.0004,-73.9604],"07648":[40.9957,-73.9504],"07649":[40.9504,-74.0304],"07650":[40.8504,-73.9904],
+"07652":[40.9457,-74.0704],"07656":[41.0304,-74.0457],"07657":[40.8304,-74.0104],"07660":[40.8557,-74.0204],
+"07661":[40.9304,-74.0357],"07662":[40.9057,-74.0704],"07663":[40.9057,-74.1004],"07666":[40.8857,-74.0104],
+"07670":[40.9157,-73.9557],"07675":[41.0004,-74.0204],"07676":[40.9957,-74.0704],"07677":[41.0204,-74.0704],
+"08001":[39.5504,-75.3604],"08002":[39.9204,-75.0304],"08003":[39.8804,-74.9804],"08004":[39.7604,-74.8404],
+"08005":[39.7504,-74.2504],"08007":[39.8604,-75.0504],"08009":[39.7904,-74.9304],"08010":[40.0504,-74.8604],
+"08012":[39.7904,-75.0604],"08015":[39.9604,-74.5504],"08016":[40.0704,-74.8604],"08019":[39.7504,-74.5504],
+"08020":[39.7904,-75.2904],"08021":[39.8004,-75.0004],"08022":[40.0604,-74.7004],"08026":[39.8304,-74.9804],
+"08027":[39.7604,-75.2904],"08028":[39.6904,-75.1204],"08029":[39.8404,-75.0704],"08030":[39.8804,-75.1204],
+"08031":[39.8604,-75.0904],"08033":[39.8904,-75.0304],"08034":[39.9104,-74.9904],"08035":[39.8804,-75.0604],
+"08036":[39.9504,-74.8404],"08037":[39.7604,-74.7804],"08041":[40.0004,-74.6904],"08043":[39.8404,-74.9604],
+"08045":[39.8604,-75.0304],"08046":[40.0304,-74.8804],"08048":[39.9704,-74.8004],"08049":[39.8604,-75.0204],
+"08050":[39.7604,-74.3004],"08051":[39.7804,-75.1804],"08052":[39.9504,-74.9904],"08053":[39.8604,-74.7804],
+"08054":[39.9404,-74.9104],"08055":[39.8704,-74.8304],"08056":[39.7904,-75.2304],"08057":[39.9704,-74.9504],
+"08059":[39.8804,-75.0904],"08060":[40.0104,-74.8004],"08062":[39.7204,-75.1804],"08063":[39.8704,-75.1804],
+"08064":[39.9604,-74.6304],"08065":[40.0004,-74.9904],"08066":[39.8304,-75.2204],"08068":[39.9504,-74.6604],
+"08069":[39.6304,-75.4604],"08070":[39.6404,-75.5204],"08075":[40.0304,-74.9404],"08077":[40.0004,-74.9904],
+"08078":[39.8504,-75.0904],"08079":[39.5504,-75.4704],"08080":[39.7604,-75.0904],"08081":[39.7304,-74.9904],
+"08083":[39.8404,-75.0204],"08084":[39.8304,-75.0104],"08085":[39.7604,-75.3304],"08086":[39.8404,-75.1804],
+"08088":[39.8604,-74.6604],"08089":[39.7104,-74.8304],"08090":[39.8004,-75.1404],"08091":[39.8104,-74.9304],
+"08093":[39.8604,-75.1404],"08094":[39.6304,-74.9604],"08095":[39.6604,-74.8704],"08096":[39.8304,-75.1204],
+"08097":[39.8104,-75.1404],"08103":[39.9304,-75.1204],"08105":[39.9504,-75.0904],"08107":[39.9104,-75.0904],
+"08109":[39.9504,-75.0704],"08110":[39.9704,-75.0604],"08201":[39.4304,-74.4904],"08202":[39.1404,-74.7604],
+"08203":[39.4004,-74.3904],"08204":[38.9504,-74.9104],"08205":[39.4704,-74.4704],"08210":[39.1004,-74.8304],
+"08215":[39.5504,-74.6004],"08221":[39.3604,-74.5804],"08223":[39.2604,-74.6204],"08225":[39.3804,-74.5504],
+"08226":[39.2604,-74.6104],"08230":[39.2104,-74.7104],"08232":[39.4004,-74.5104],"08234":[39.4004,-74.6204],
+"08240":[39.4604,-74.5404],"08241":[39.4404,-74.5504],"08242":[38.9904,-74.8704],"08243":[39.1404,-74.7004],
+"08244":[39.3104,-74.6004],"08245":[39.1204,-74.8404],"08246":[39.1304,-74.7604],"08247":[39.0604,-74.7804],
+"08248":[39.1904,-74.6704],"08250":[39.2904,-74.7904],"08251":[39.0304,-74.9404],"08252":[39.0404,-74.9004],
+"08260":[38.9904,-74.8204],"08270":[39.2304,-74.8004],"08302":[39.4304,-75.2304],"08310":[39.5204,-74.8804],
+"08311":[39.3404,-75.2004],"08312":[39.6504,-75.0804],"08314":[39.2104,-74.9404],"08316":[39.2704,-74.9704],
+"08317":[39.2904,-74.8304],"08318":[39.5504,-75.1004],"08319":[39.3704,-74.8304],"08320":[39.3704,-75.1204],
+"08321":[39.2704,-75.1404],"08322":[39.6104,-75.0404],"08323":[39.3504,-75.2904],"08324":[39.2304,-74.9904],
+"08326":[39.5104,-74.9404],"08327":[39.2404,-74.9604],"08328":[39.5704,-75.0504],"08329":[39.2804,-74.9904],
+"08330":[39.4504,-74.7204],"08332":[39.4004,-75.0304],"08340":[39.3604,-74.9204],"08341":[39.5004,-74.9504],
+"08343":[39.6304,-75.1604],"08344":[39.5504,-75.0404],"08345":[39.3204,-75.1604],"08346":[39.5604,-74.9804],
+"08348":[39.3104,-74.9804],"08349":[39.2604,-74.9904],"08350":[39.5004,-74.8704],"08352":[39.4704,-75.1204],
+"08353":[39.4404,-75.2104],"08360":[39.4304,-75.0304],"08361":[39.4204,-75.0204],"08362":[39.4304,-75.0404]};
+
+const CITIES = {"surf city":[39.6621,-74.1704],"ship bottom":[39.6454,-74.1835],"beach haven":[39.5593,-74.2432],
+"long beach township":[39.6,-74.2],"barnegat":[39.7531,-74.2229],"manahawkin":[39.6957,-74.2579],
+"stafford":[39.7,-74.26],"point pleasant":[40.0832,-74.0682],"brick":[40.0579,-74.1090],"toms river":[39.9537,-74.1979],
+"lakewood":[40.0959,-74.2176],"howell":[40.1673,-74.2079],"freehold":[40.2604,-74.2732],"tinton falls":[40.2837,-74.0943],
+"middletown":[40.3962,-74.1179],"manalapan":[40.2934,-74.3446],"jackson":[40.1076,-74.3482],"wall":[40.1543,-74.0510],
+"belmar":[40.1790,-74.0218],"asbury park":[40.2204,-74.0121],"red bank":[40.3471,-74.0646],"eatontown":[40.2993,-74.0512],
+"neptune":[40.2098,-74.0404],"old bridge":[40.4148,-74.3654],"edison":[40.5187,-74.4121],"trenton":[40.2171,-74.7429],
+"newark":[40.7357,-74.1724],"jersey city":[40.7178,-74.0431],"paramus":[40.9445,-74.0754],"cherry hill":[39.9348,-75.0307],
+"atlantic city":[39.3643,-74.4229],"vineland":[39.4862,-75.0257],"marlton":[39.8912,-74.9218],"hazlet":[40.4262,-74.1696]};
+
+function geocode() {
+  const zip = (document.getElementById('zip').value || '').trim().slice(0, 5);
+  if (ZIPS[zip]) return ZIPS[zip];
+  const city = (document.getElementById('city').value || '').trim().toLowerCase();
+  if (CITIES[city]) return CITIES[city];
+  for (const k in CITIES) if (city && (city.includes(k) || k.includes(city))) return CITIES[k];
+  return null;
+}
+
+/* ---------------- catalog & tabs ---------------- */
+const TAB_ORDER = ['tuning', 'maintenance', 'repairs', 'exhaust', 'intake', 'cooling', 'suspension', 'cosmetic', 'starlights'];
+const TAB_LABEL = {tuning: 'Tuning & ECU', maintenance: 'Maintenance', repairs: 'Repairs', exhaust: 'Exhaust',
+  intake: 'Intake', cooling: 'Cooling', suspension: 'Suspension', cosmetic: 'Cosmetic', starlights: 'Starlights'};
+
+function renderTabs() {
+  const cat = state.catalog;
+  const tabs = TAB_ORDER.filter(id => cat.categories.some(c => c.id === id));
+  const counts = {};
+  state.items.forEach(id => { const c = findCat(id); counts[c] = (counts[c] || 0) + 1; });
+  document.getElementById('tabs').innerHTML = tabs.map(id => {
+    const c = cat.categories.find(x => x.id === id);
+    const n = counts[id] ? '<span class="n">' + counts[id] + '</span>' : '';
+    return '<button class="tab' + (state.tab === id ? ' on' : '') + '" data-tab="' + id + '">' + (TAB_LABEL[id] || c.name) + n + '</button>';
+  }).join('') + '<button class="tab' + (state.tab === 'packages' ? ' on' : '') + '" data-tab="packages">Packages</button>' +
+    '<button class="tab' + (state.tab === 'addons' ? ' on' : '') + '" data-tab="addons">Add-ons</button>';
+  document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { state.tab = b.dataset.tab; renderTabs(); renderItems(); });
+}
+function findCat(itemId) {
+  for (const c of state.catalog.categories) if (c.items.some(i => i.id === itemId)) return c.id;
+  return null;
+}
+function renderItems() {
+  const cat = state.catalog, el = document.getElementById('items');
+  if (state.tab === 'packages') {
+    el.innerHTML = cat.packages.map(p => '<div class="item' + (state.package === p.id ? ' on' : '') + '" data-pkg="' + p.id + '">' +
+      '<div class="tick">' + (state.package === p.id ? '✓' : '') + '</div>' +
+      '<div style="flex:1"><div class="nm">' + p.name + '</div><div class="ds">' + p.bullets.join(' · ') + '</div></div>' +
+      '<div class="pr">' + range(p) + '</div></div>').join('');
+    el.querySelectorAll('[data-pkg]').forEach(n => n.onclick = () => {
+      state.package = state.package === n.dataset.pkg ? null : n.dataset.pkg;
+      renderTabs(); renderItems(); refresh();
+    });
+    return;
+  }
+  if (state.tab === 'addons') {
+    el.innerHTML = '<div class="muted" style="margin-bottom:10px">Add these to any booking and save a trip.</div>' +
+      cat.addons.map(a => '<div class="item' + (state.addons.includes(a.id) ? ' on' : '') + '" data-addon="' + a.id + '">' +
+      '<div class="tick">' + (state.addons.includes(a.id) ? '✓' : '') + '</div>' +
+      '<div style="flex:1"><div class="nm">' + a.name + '</div><div class="ds">' + a.group + ' · ' + a.desc + '</div></div>' +
+      '<div class="pr">+' + money(a.min) + '–' + money(a.max) + '</div></div>').join('');
+    el.querySelectorAll('[data-addon]').forEach(n => n.onclick = () => {
+      const i = state.addons.indexOf(n.dataset.addon);
+      i >= 0 ? state.addons.splice(i, 1) : state.addons.push(n.dataset.addon);
+      renderItems(); refresh();
+    });
+    return;
+  }
+  const c = cat.categories.find(x => x.id === state.tab) || cat.categories[0];
+  el.innerHTML = '<div class="muted" style="margin-bottom:10px">' + c.blurb + '</div>' + c.items.filter(i => !i.addon).map(i => {
+    const on = state.items.includes(i.id);
+    return '<div class="item' + (on ? ' on' : '') + '" data-id="' + i.id + '">' +
+      '<div class="tick">' + (on ? '✓' : '') + '</div>' +
+      '<div style="flex:1"><div class="nm">' + i.name + (i.quote ? '<span class="badge quote">By VIN</span>' : '') + '</div>' +
+      '<div class="ds">' + i.desc + '</div></div><div class="pr">' + range(i) + '</div></div>';
+  }).join('');
+  el.querySelectorAll('[data-id]').forEach(n => n.onclick = () => {
+    const i = state.items.indexOf(n.dataset.id);
+    i >= 0 ? state.items.splice(i, 1) : state.items.push(n.dataset.id);
+    renderTabs(); renderItems(); refresh();
+  });
+}
+
+/* ---------------- conditional questions ---------------- */
+function renderQuestions(qs) {
+  const card = document.getElementById('questionsCard'), box = document.getElementById('questions');
+  if (!qs.length) { card.hidden = true; return; }
+  card.hidden = false;
+  box.innerHTML = qs.map(q => {
+    const v = state.answers[q.id];
+    let field = '';
+    if (q.type === 'choice') {
+      field = '<div class="chips">' + q.options.map(o =>
+        '<span class="chip' + (v === o ? ' on' : '') + '" data-q="' + q.id + '" data-v="' + o + '">' + o + '</span>').join('') + '</div>';
+    } else if (q.type === 'text') {
+      field = '<input data-q="' + q.id + '" value="' + (v || '') + '" placeholder="' + (q.hint || '') + '">';
+    } else if (q.type === 'textarea') {
+      field = '<textarea data-q="' + q.id + '" placeholder="' + (q.hint || '') + '">' + (v || '') + '</textarea>';
+    } else if (q.type === 'note') {
+      field = '<div class="muted">' + (q.hint || '') + '</div>';
+    }
+    return '<div class="qbox"><label style="margin-top:0">' + q.label + '</label>' + field +
+      (q.type === 'choice' && q.hint ? '<div class="hint">' + q.hint + '</div>' : '') + '</div>';
+  }).join('');
+  box.querySelectorAll('[data-q]').forEach(n => {
+    if (n.tagName === 'SPAN') n.onclick = () => { state.answers[n.dataset.q] = n.dataset.v; renderQuestions(qs); };
+    else n.oninput = n.onchange = () => { state.answers[n.dataset.q] = n.value; };
+  });
+}
+
+/* ---------------- payload, quote, submit ---------------- */
+function payload() {
+  const coords = geocode();
+  const date = document.getElementById('date').value, time = document.getElementById('time').value;
+  return {
+    items: state.items, addons: state.addons, package: state.package, custom: state.custom,
+    answers: state.answers,
+    lat: coords ? coords[0] : null, lng: coords ? coords[1] : null,
+    when: (date && /^\d{4}-\d{2}-\d{2}$/.test(date) && /^\d{2}:\d{2}/.test(time)) ? date + 'T' + time.slice(0, 5) : null,
+    client: {name: document.getElementById('name').value, email: document.getElementById('email').value,
+             phone: document.getElementById('phone').value, address: document.getElementById('address').value,
+             city: document.getElementById('city').value, zip: document.getElementById('zip').value,
+             lat: coords ? coords[0] : null, lng: coords ? coords[1] : null},
+    vehicle: {vin: document.getElementById('vin').value.trim().toUpperCase(), model: document.getElementById('model').value},
+    notes: document.getElementById('notes').value
+  };
+}
+
+let t = null;
+function refresh() {
+  clearTimeout(t);
+  t = setTimeout(async () => {
+    const p = payload();
+    const has = p.items.length || p.package || p.custom;
+    if (!has) {
+      document.getElementById('quote').innerHTML = '<tr><td class="muted">Nothing selected yet.</td></tr>';
+      document.getElementById('stickyTotal').textContent = '—';
+      document.getElementById('travelBox').textContent = 'Enter your ZIP or city to see the travel fee and drive time.';
+      document.getElementById('questionsCard').hidden = true;
+      document.getElementById('submit').disabled = true;
+      return;
+    }
+    let r, d;
+    try {
+      r = await fetch(API + '/api/quote', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(p)});
+      d = await r.json();
+    } catch (e) { document.getElementById('err').textContent = 'No connection — check your signal and try again.'; return; }
+    if (!r.ok) { document.getElementById('err').textContent = why(d); return; }
+    document.getElementById('err').textContent = '';
+    state.quote = d.quote;
+    const q = d.quote, to = q.totals;
+    renderQuestions(q.questions || []);
+    document.getElementById('quote').innerHTML = q.lines.map(l =>
+      '<tr><td>' + l.name + (l.note ? '<div class="muted" style="font-size:12.5px">' + l.note + '</div>' : '') + '</td>' +
+      '<td class="r">' + (l.needsQuote && !l.unit ? 'By VIN' : money(l.unit)) + '</td></tr>').join('') +
+      '<tr class="total"><td>Estimated total</td><td class="r">' + money(to.total) + '</td></tr>' +
+      (to.deposit ? '<tr class="small"><td>Deposit to order parts (custom build)</td><td class="r">' + money(to.deposit) + '</td></tr>' : '') +
+      '<tr class="small"><td>Balance at completion</td><td class="r">' + money(to.balance) + '</td></tr>';
+    document.getElementById('stickyTotal').textContent = money(to.total);
+    const tr = q.travel;
+    const box = document.getElementById('travelBox');
+    if (tr) {
+      const tiers = (tr.tiers || []).map(b => b.miles + ' mi × ' + money(b.perMile) + ' = ' + money(b.amount)).join('<br>');
+      box.innerHTML = tr.inServiceArea
+        ? '<b>' + tr.miles + ' miles</b> each way from Surf City · about ' + tr.driveMinutesOneWay + ' min drive<br>' +
+          'Travel fee <b>' + money(tr.travelFee) + '</b>' +
+          (tiers ? '<div class="muted" style="margin-top:6px">' + tiers + '</div>' : '<div class="muted" style="margin-top:6px">Inside the first 30 miles — free</div>') +
+          (tr.surcharges.length ? '<div class="muted" style="margin-top:6px">' + tr.surcharges.map(s => s.label + ': ' + money(s.amount)).join('<br>') + '</div>' : '') +
+          '<div class="muted" style="margin-top:6px">First 30 mi free · 30–60 mi $0.75/mi · 60+ mi $1.50/mi</div>'
+        : 'That address is ' + tr.miles + ' miles out — past my ' + tr.maxDriveMiles + '-mile range. Send the request and I will quote the trip.';
+    } else {
+      box.textContent = 'Enter your ZIP or city to see the travel fee and drive time.';
+    }
+    validate();
+  }, 250);
+}
+
+function validate() {
+  const p = payload();
+  const need = (state.quote && state.quote.questions || []).filter(q => q.required && q.type !== 'note');
+  const answered = need.every(q => (state.answers[q.id] || '').toString().trim());
+  const read = $('readAll') && $('readAll').checked;
+  const agree = $('consent') && $('consent').checked;
+  const named = $('signName') && $('signName').value.trim().length > 1;
+  const ok = (p.items.length || p.package || p.custom) && p.vehicle.vin.length === 17 && p.client.email.includes('@') &&
+             p.client.name.trim().length > 1 && document.getElementById('date').value && answered &&
+             read && agree && named && signed;
+  const btn = $('submit');
+  btn.disabled = !ok;
+  $('agreeHint').textContent = !read ? 'Tick the terms box.' : !agree ? 'Tick the e-signature box.'
+    : !named ? 'Type your legal name.' : !signed ? 'Draw your signature.' : 'Ready — send it.';
+}
+
+async function availability() {
+  const date = $('date').value;
+  if (!date) return;
+  const hours = Math.max((state.quote && state.quote.jobHours) || 2, 0.5);
+  let d;
+  try { d = await (await fetch(API + '/api/availability?date=' + date + '&hours=' + hours)).json(); }
+  catch (e) { $('avail').textContent = 'Could not load times — try another day.'; return; }
+  if (!d || !d.slots) { $('avail').textContent = 'Could not load times — try another day.'; return; }
+  const sel = $('time');
+  const open = d.slots.filter(s => s.available);
+  const taken = d.slots.filter(s => !s.available);
+  if (open.length) {
+    const keep = sel.value;
+    // every start time of the day is listed; taken ones are disabled, never hidden
+    sel.innerHTML = d.slots.map(s =>
+      `<option value="${s.start}"${s.available ? '' : ' disabled'}>${s.label}${s.available ? '' : (s.reason === 'booked' ? ' — booked' : ' — too late')}</option>`
+    ).join('');
+    const stillOk = open.some(s => s.start === keep);
+    sel.value = stillOk ? keep : open[0].start;
+    sel.disabled = false;
+    $('avail').textContent = open.length + ' start time' + (open.length === 1 ? '' : 's') + ' free that day'
+      + (taken.length ? ' · ' + taken.length + ' blocked' : '') + ' · your job runs about ' + hours + ' hour' + (hours === 1 ? '' : 's') + '.';
+  } else {
+    sel.innerHTML = '<option>' + (d.closed ? 'Closed' : 'Fully booked') + '</option>';
+    sel.disabled = true;
+    $('avail').textContent = d.closed
+      ? 'Closed that day — I work ' + (d.hoursLabel || 'Mon–Thu 7am–5pm, Fri–Sat 6am–3pm') + '.'
+      : 'No room that day for a ' + hours + '-hour job — try another day.';
+  }
+}
+
+document.addEventListener('input', e => { if (e.target.id !== 'notes') refresh(); });
+document.getElementById('date').onchange = () => { availability(); refresh(); };
+document.querySelectorAll('[data-mode]').forEach(m => m.onclick = () => {
+  state.custom = m.dataset.mode === 'custom';
+  document.querySelectorAll('[data-mode]').forEach(x => x.classList.toggle('on', x === m));
+  document.getElementById('tabs').style.display = state.custom ? 'none' : '';
+  document.getElementById('items').style.display = state.custom ? 'none' : '';
+  refresh();
+});
+document.getElementById('submit').onclick = async () => {
+  const btn = document.getElementById('submit');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  const body = Object.assign(payload(), {
+    consent: true,
+    acknowledged: true,
+    signature: {name: $('signName').value.trim(), image: pad.toDataURL('image/png')}
+  });
+  let r, d;
+  try {
+    r = await fetch(API + '/api/request', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+    d = await r.json();
+  } catch (e) {
+    document.getElementById('err').textContent = 'No connection — check your signal and try again.';
+    btn.disabled = false; btn.textContent = 'Send my request'; return;
+  }
+  if (!r.ok) {
+    document.getElementById('err').textContent = why(d);
+    btn.disabled = false; btn.textContent = 'Send my request'; return;
+  }
+  location.href = new URL(d.links.proposal).pathname;
+};
+
+/* ---- terms + signature ---- */
+let pad, pctx, drawing = false, signed = false;
+function initPad() {
+  pad = $('sigpad');
+  const ratio = window.devicePixelRatio || 1;
+  pad.width = pad.clientWidth * ratio; pad.height = pad.clientHeight * ratio;
+  pctx = pad.getContext('2d'); pctx.scale(ratio, ratio);
+  pctx.lineWidth = 2.2; pctx.lineCap = 'round'; pctx.strokeStyle = '#0B0B0D';
+  const pos = e => { const r = pad.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  pad.addEventListener('pointerdown', e => { drawing = true; pctx.beginPath(); pctx.moveTo(...pos(e)); pad.setPointerCapture(e.pointerId); });
+  pad.addEventListener('pointermove', e => { if (!drawing) return; pctx.lineTo(...pos(e)); pctx.stroke(); signed = true; validate(); });
+  pad.addEventListener('pointerup', () => drawing = false);
+  pad.addEventListener('pointerleave', () => drawing = false);
+  $('clearSig').onclick = () => { pctx.clearRect(0, 0, pad.width, pad.height); signed = false; validate(); };
+  ['readAll', 'consent'].forEach(id => $(id).onchange = validate);
+  $('signName').oninput = validate;
+}
+function initTerms() {
+  fetch(API + '/api/terms').then(r => r.json()).then(t => {
+    $('termsScroll').textContent = t.body || '';
+  });
+}
+
+fetch(API + '/api/catalog').then(r => r.json()).then(cat => {
+  state.catalog = cat;
+  state.tab = TAB_ORDER.find(id => cat.categories.some(c => c.id === id));
+  renderTabs(); renderItems();
+  const dt = new Date(); dt.setDate(dt.getDate() + 2);
+  while (dt.getDay() === 0) dt.setDate(dt.getDate() + 1);   // closed Sundays
+  document.getElementById('date').value = dt.toISOString().slice(0, 10);
+  document.getElementById('date').min = new Date().toISOString().slice(0, 10);
+  $('hoursLine').textContent = cat.hoursLabel || '';
+  availability();
+  initTerms(); initPad();
+});
+</script>
+</body>
+</html>

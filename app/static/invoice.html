@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Invoice · Bimmer House Calls</title>
+<style>
+  :root{--ink:#0B0B0D;--mut:#5b6470;--line:#e5e8ec;--accent:#FFD400;--accent-2:#E6BF00;--accent-ink:#0B0B0D;
+        --ok:#0a7d43;--bg:#f6f8fa;--card:#fff}
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--bg)}
+  .wrap{max-width:720px;margin:0 auto;padding:24px 16px 80px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;margin-bottom:16px}
+  h1{font-size:22px;margin:0} h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin:0 0 12px}
+  .muted{color:var(--mut);font-size:14px}
+  .row{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  /* ---- logo ---- */
+  .brand{display:flex;align-items:center;gap:14px}
+  .logocard{background:var(--ink);border-radius:14px;padding:10px 16px;display:inline-block}
+  .mark{width:52px;height:52px;border-radius:12px;background:var(--ink);display:grid;place-items:center;flex:0 0 auto}
+  .mark svg{width:30px;height:30px}
+  .wordmark{line-height:1.05}
+  .wordmark b{display:block;font-size:19px;letter-spacing:.14em;font-weight:800}
+  .wordmark b span{color:var(--accent-2)}
+  .wordmark i{display:block;font-style:normal;font-size:10.5px;letter-spacing:.18em;color:var(--mut);text-transform:uppercase;margin-top:3px}
+  .stripe{height:5px;background:var(--accent);border-radius:99px;margin:16px 0 0}
+  /* ---- tables ---- */
+  table{width:100%;border-collapse:collapse}
+  td,th{padding:9px 0;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  td.r,th.r{text-align:right;white-space:nowrap}
+  th{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);font-weight:600}
+  tr.sub td{border:0;padding:5px 0}
+  tr.total td{border:0;font-weight:800;font-size:20px;padding-top:12px}
+  tr.due td{border:0;font-weight:800;font-size:17px;background:#FFFBE0;padding:12px 10px;border-radius:10px}
+  .pill{display:inline-block;padding:3px 11px;border-radius:999px;background:#FFF6C2;color:#5a4a00;font-size:12px;font-weight:700}
+  .pill.paid{background:#e7f7ee;color:var(--ok)}
+  .kv{display:grid;grid-template-columns:120px 1fr;gap:6px 14px;font-size:14.5px}
+  .kv .k{color:var(--mut)}
+  /* ---- terms + signature ---- */
+  .terms{max-height:230px;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:14px;
+         font-size:12.8px;line-height:1.5;background:#fcfcfd;white-space:pre-wrap}
+  .sigbox{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:end;margin-top:14px}
+  .sigimg{border-bottom:1.5px solid var(--ink);min-height:70px;display:flex;align-items:flex-end}
+  .sigimg img{max-height:70px;max-width:100%}
+  .hash{font-family:ui-monospace,Consolas,monospace;font-size:10.5px;color:var(--mut);word-break:break-all}
+  .paybox{background:#0B0B0D;color:#fff;border-radius:14px;padding:20px;margin-bottom:16px}
+  .paybox h2{color:var(--accent)}
+  .paybox .big{font-size:30px;font-weight:800;letter-spacing:-.02em}
+  .ways{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .way{background:#1b1b1f;border:1px solid #2a2a30;border-radius:9px;padding:8px 12px;font-size:13.5px}
+  .way b{color:var(--accent)}
+  .noprint{display:block}
+  @media print{
+    body{background:#fff}
+    .noprint{display:none!important}
+    .wrap{max-width:none;padding:0}
+    .card{border:0;padding:0 0 14px;margin-bottom:10px}
+    .terms{max-height:none;overflow:visible}
+    .logocard{background:#0B0B0D!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .paybox{background:#fff;color:var(--ink);border:1px solid var(--line)}
+    .paybox h2{color:var(--mut)} .way{background:#f6f8fa;border-color:var(--line)} .way b{color:var(--ink)}
+    .pagebreak{page-break-before:always}
+  }
+  @media(max-width:560px){.sigbox{grid-template-columns:1fr}.kv{grid-template-columns:1fr}.kv .k{margin-top:6px}}
+</style>
+</head>
+<body>
+<div class="wrap" id="root"><div class="card muted">Loading invoice…</div></div>
+<script>
+const TOKEN = location.pathname.split('/').filter(Boolean).pop();
+const money = n => '$' + Number(n || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+const dt = s => s ? new Date(s).toLocaleString('en-US', {month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit'}) : '';
+
+function logo(shop) {
+  const L = shop.logo || {};
+  const file = L.file || L.logoFile;
+  if (file) {
+    return `<div class="logocard"><img src="${esc(file)}" alt="Bimmer House Calls" style="height:78px;display:block"></div>`;
+  }
+  return `<div class="brand">
+    <div class="mark">
+      <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="20" cy="20" r="15" stroke="#FFD400" stroke-width="3"/>
+        <path d="M20 5a15 15 0 0 1 0 30z" fill="#FFD400" opacity=".92"/>
+        <path d="M20 5a15 15 0 0 0 0 30z" fill="#fff" opacity=".92"/>
+        <circle cx="20" cy="20" r="6.5" fill="#0B0B0D" stroke="#0B0B0D"/>
+      </svg>
+    </div>
+    <div class="wordmark">
+      <b>BIMMER <span>HOUSE CALLS</span></b>
+      <i>${esc(shop.logo?.tagline || 'Mobile BMW service')}</i>
+    </div>
+  </div>`;
+}
+
+fetch('/api/i/' + TOKEN).then(r => r.json()).then(d => {
+  if (d.error) { document.getElementById('root').innerHTML = '<div class="card">Invoice not found.</div>'; return; }
+  const i = d.invoice, t = d.totals, shop = d.shop || {}, sig = d.signature;
+  const lines = d.lines || [];
+  const sub = t.subtotal != null ? t.subtotal : lines.reduce((n, l) => n + (l.qty || 1) * (l.unit || 0), 0);
+  const tax = t.tax || 0, total = t.total != null ? t.total : sub + tax;
+  const dueNow = Math.max(0, (t.amountDue || total) - (d.paid || 0));
+
+  const lineRows = lines.length
+    ? lines.map(l => `<tr>
+        <td>${esc(l.name)}${l.note ? `<div class="muted" style="font-size:12.5px">${esc(l.note)}</div>` : ''}</td>
+        <td class="r">${l.qty && l.qty !== 1 ? l.qty : ''}</td>
+        <td class="r">${money(l.unit != null ? l.unit : l.total)}</td>
+        <td class="r">${money((l.qty || 1) * (l.unit != null ? l.unit : l.total))}</td></tr>`).join('')
+    : `<tr><td>${t.kind === 'deposit' ? 'Deposit' : 'Service'}</td><td class="r"></td><td class="r"></td><td class="r">${money(t.amountDue || total)}</td></tr>`;
+
+  const workRows = (d.questions || []).map(q =>
+    `<div class="k">${esc(q.question)}</div><div>${esc(q.answer)}</div>`).join('');
+
+  const payRows = (d.payments || []).length
+    ? (d.payments).map(p => `<tr><td class="muted">Paid ${new Date(p.received_at).toLocaleDateString('en-US')} · ${esc(p.method)}</td><td class="r">−${money(p.amount)}</td></tr>`).join('')
+    : '';
+
+  document.getElementById('root').innerHTML = `
+    <div class="card">
+      <div class="row" style="align-items:flex-start">
+        <div>${logo(shop)}</div>
+        <div style="text-align:right">
+          <div class="pill ${i.status === 'paid' ? 'paid' : ''}">${({open:'Amount due', partial:'Partly paid', paid:'Paid', void:'Void'}[i.status] || i.status)}</div>
+          <div style="font-weight:800;font-size:17px;margin-top:8px">Invoice ${esc(i.number)}</div>
+          <div class="muted">${esc(d.booking)} · ${t.kind === 'deposit' ? 'deposit' : (t.kind === 'balance' ? 'final balance' : 'charge')}</div>
+        </div>
+      </div>
+      <div class="stripe"></div>
+      <div class="row" style="margin-top:14px;font-size:14px">
+        <div>
+          <div class="muted">Billed to</div>
+          <b>${esc(d.client.name)}</b><br>
+          ${esc(d.client.address)}<br>
+          ${esc(d.client.phone)} · ${esc(d.client.email)}
+        </div>
+        <div style="text-align:right">
+          <div class="muted">Issued</div><div>${esc((i.created_at || '').slice(0, 10))}</div>
+          ${i.due_at ? `<div class="muted" style="margin-top:6px">Due</div><div>${esc(i.due_at.slice(0, 10))}</div>` : ''}
+          ${d.scheduledStart ? `<div class="muted" style="margin-top:6px">Service</div><div>${dt(d.scheduledStart)}</div>` : ''}
+        </div>
+      </div>
+    </div>
+
+    <div class="paybox noprint">
+      <h2>Amount due</h2>
+      <div class="big">${money(dueNow)}</div>
+      <div class="ways">
+        ${(shop.accepts || ['Zelle', 'Cash', 'Check']).map(w => `<div class="way"><b>${esc(w)}</b></div>`).join('')}
+      </div>
+      <div class="muted" style="color:#9aa3ae;margin-top:12px;font-size:13px">
+        Send Zelle to ${esc(shop.email)} or pay on site. Your invoice updates the moment a payment is recorded.
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Vehicle</h2>
+      <div class="kv">
+        <div class="k">Vehicle</div><div>${esc(d.vehicle.year || '')} ${esc(d.vehicle.model || 'BMW')}</div>
+        <div class="k">VIN</div><div style="font-family:ui-monospace,Consolas,monospace">${esc(d.vehicle.vin)}</div>
+      </div>
+      ${workRows ? `<h2 style="margin-top:18px">The work</h2><div class="kv">${workRows}</div>` : ''}
+    </div>
+
+    <div class="card">
+      <h2>Services &amp; price</h2>
+      <table>
+        <tr><th>Service</th><th class="r">Qty</th><th class="r">Price</th><th class="r">Amount</th></tr>
+        ${lineRows}
+        <tr class="sub"><td colspan="3" class="r muted">Subtotal</td><td class="r">${money(sub)}</td></tr>
+        ${tax ? `<tr class="sub"><td colspan="3" class="r muted">NJ tax (${((t.taxRate || 0) * 100).toFixed(3)}%)</td><td class="r">${money(tax)}</td></tr>` : ''}
+        <tr class="sub"><td colspan="3" class="r"><b>Total</b></td><td class="r"><b>${money(total)}</b></td></tr>
+        ${payRows}
+      </table>
+      <table style="margin-top:10px"><tr class="due"><td>Due now</td><td class="r">${money(dueNow)}</td></tr></table>
+      ${i.note ? `<div class="muted" style="margin-top:12px"><b>Note:</b> ${esc(i.note)}</div>` : ''}
+    </div>
+
+    <div class="card pagebreak">
+      <h2>Terms of service — version ${esc(d.terms.version || '')}</h2>
+      <div class="muted" style="margin-bottom:10px">The terms you agreed to when you booked this job.</div>
+      <div class="terms">${esc(d.terms.body || 'Terms on file.')}</div>
+      ${sig ? `<div class="sigbox">
+        <div>
+          <div class="muted">Signed by</div>
+          <div style="font-size:17px;font-weight:700">${esc(sig.name)}</div>
+          <div class="muted" style="font-size:12.5px">${dt(sig.signedAt)}${sig.ip ? ' · IP ' + esc(sig.ip) : ''}</div>
+          <div class="muted" style="font-size:12.5px">Proposal ${esc(sig.proposal)}</div>
+        </div>
+        <div>
+          <div class="sigimg">${sig.image ? `<img src="${esc(sig.image)}" alt="signature">` : ''}</div>
+          <div class="muted" style="font-size:12px;margin-top:4px">Electronic signature</div>
+        </div>
+      </div>
+      <div class="hash" style="margin-top:14px">Document hash ${esc(sig.hash || '')}</div>` : '<div class="muted">No signature on file for this job.</div>'}
+    </div>
+
+    <div class="card muted" style="font-size:13px">
+      <b style="color:var(--ink)">Bimmer House Calls</b> · ${esc(shop.baseAddress || '')}<br>
+      ${esc(shop.phone || '')} · ${esc(shop.email || '')}<br>
+      ${esc(shop.hoursLabel || '')}<br>
+      <div class="noprint" style="margin-top:12px"><button onclick="window.print()" style="font:inherit;font-weight:800;border:0;border-radius:10px;padding:12px 18px;background:#FFD400;color:#0B0B0D;cursor:pointer">Print / save as PDF</button></div>
+    </div>`;
+});
+</script>
+</body>
+</html>
