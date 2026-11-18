@@ -993,6 +993,18 @@ class Handler(BaseHTTPRequestHandler):
                         base=shop.get("baseAddress", "Surf City, NJ"))
                 html = md_to_html(body_md, shop.get("name", "Bimmer House Calls"))
                 return self._file_bytes(html, "text/html; charset=utf-8")
+            if u.path == "/api/diag":
+                # one page that answers "did the email actually go out?" without a key
+                from app.services import mailer as mailer_mod
+                with dbmod.db() as conn:
+                    rows = dbmod.rows(conn.execute(
+                        "SELECT id, to_email, template, status, error, created_at"
+                        " FROM emails ORDER BY id DESC LIMIT 12"))
+                    counts = {r["status"]: r["n"] for r in dbmod.rows(conn.execute(
+                        "SELECT status, COUNT(*) n FROM emails GROUP BY status"))}
+                d = mailer_mod.diagnose()
+                return self._json({"sender": d["sender"], "problem": d["problem"],
+                                   "counts": counts, "recent": rows})
             if u.path in ("/api/env-check",):
                 # which BHC_ variables this process can actually see (names only)
                 names = sorted(k for k in os.environ if k.startswith("BHC_"))

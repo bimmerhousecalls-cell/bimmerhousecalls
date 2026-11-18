@@ -211,8 +211,13 @@ def schedule_flush(delay: float = 8.0) -> None:
 def _flush_now() -> None:
     try:
         drain()
-    except Exception:  # noqa: BLE001
-        pass
+    except Exception as exc:  # noqa: BLE001
+        try:
+            with open(os.path.join(os.path.dirname(dbmod.DB_PATH), "flush.log"), "a",
+                      encoding="utf-8") as fh:
+                fh.write(f"{datetime.now().isoformat(timespec='seconds')} flush failed: {exc}\n")
+        except Exception:  # noqa: BLE001
+            pass
 
 
 def drain(limit: int = 50, dry_run: bool = False) -> dict:
