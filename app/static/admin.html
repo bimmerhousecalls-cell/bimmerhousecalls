@@ -111,8 +111,7 @@ const when = s => s ? new Date(s).toLocaleString('en-US', {month: 'short', day: 
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
 const iso7 = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
 // 12-hour, always — the whole app shows 7:30 AM, never 07:30
-const clock = s => { if (!s) return '—'; const d = new Date(s);
-  return d.toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit'}); };
+const clock = s => s ? new Date(s).toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit'}) : '—';
 let KEY = localStorage.getItem('bhc_admin_key') || sessionStorage.getItem('bhc_admin_key') || '';
 let VIEW = 'overview';
 const $ = id => document.getElementById(id);

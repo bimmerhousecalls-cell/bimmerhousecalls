@@ -374,13 +374,19 @@ def vin_decode_stub(vin: str) -> dict:
     vin = (vin or "").strip().upper()
     if len(vin) != 17:
         return {"valid": False, "error": "A VIN is 17 characters."}
+    # position 10 is a 30-year cycle: pick the candidate closest to today
     year_codes = "ABCDEFGHJKLMNPRSTVWXY123456789"
     try:
-        year = 1980 + year_codes.index(vin[9])
+        base = 1980 + year_codes.index(vin[9])
     except ValueError:
-        year = None
-    if year and year < 1990:
-        year += 30
+        base = None
+    year = None
+    if base:
+        this_year = datetime.now().year
+        candidates = [base, base + 30]
+        # never return a year in the future; choose the latest that is not ahead of us
+        past = [c for c in candidates if c <= this_year + 1]
+        year = max(past) if past else base
     return {
         "valid": True,
         "vin": vin,

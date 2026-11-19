@@ -95,9 +95,11 @@ def upsert_vehicle(conn, client_id: int, vin: str, **v) -> int:
     vin = vin.strip().upper()
     row = conn.execute("SELECT id FROM vehicles WHERE vin=?", (vin,)).fetchone()
     if row:
+        decoded = pricing.vin_decode_stub(vin) or {}
         conn.execute("UPDATE vehicles SET client_id=?, model=COALESCE(?,model), engine=COALESCE(?,engine),"
-                     " sunroof=COALESCE(?,sunroof) WHERE id=?",
-                     (client_id, v.get("model"), v.get("engine"), v.get("sunroof"), row["id"]))
+                     " sunroof=COALESCE(?,sunroof), year=COALESCE(?,year) WHERE id=?",
+                     (client_id, v.get("model"), v.get("engine"), v.get("sunroof"),
+                      decoded.get("year"), row["id"]))
         return row["id"]
     decoded = pricing.vin_decode_stub(vin)
     cur = conn.execute(

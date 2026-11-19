@@ -131,7 +131,10 @@ def build_pdf(inv: dict) -> bytes:
     veh = inv.get("vehicle") or {}
     p.text(MARGIN, y, 9, "VEHICLE", MUTED, bold=True)
     y -= 14
-    line = " ".join(x for x in (str(veh.get("year", "")), veh.get("model", "")) if x).strip() or "BMW"
+    yr = str(veh.get("year") or "").strip()
+    if not (yr.isdigit() and 1980 <= int(yr) <= 2100):
+        yr = ""
+    line = " ".join(x for x in (yr, veh.get("model", "")) if x).strip() or "BMW"
     p.text(MARGIN, y, 11, line)
     if veh.get("vin"):
         p.text(MARGIN + 200, y, 9, f"VIN {veh['vin']}", MUTED)
@@ -139,12 +142,13 @@ def build_pdf(inv: dict) -> bytes:
 
     title = (inv.get("jobTitle") or "").strip()
     if title:
-        p.text(MARGIN, y, 9, "THE WORK", MUTED, bold=True)
-        y -= 15
-        for wl in _wrap(title, 82):
-            p.text(MARGIN, y, 11, wl)
-            y -= 14
-        y -= 10
+        p.rect(MARGIN, y - 2, 3, 13, YELLOW)
+        p.text(MARGIN + 10, y, 9, "THE WORK", MUTED, bold=True)
+        y -= 16
+        for wl in _wrap(title, 80):
+            p.text(MARGIN + 10, y, 11.5, wl, bold=True)
+            y -= 15
+        y -= 12
 
     p.text(MARGIN, y, 9, "SERVICES", MUTED, bold=True)
     p.text(PAGE_W - MARGIN - 120, y, 9, "AMOUNT", MUTED, bold=True)
@@ -196,7 +200,7 @@ def build_pdf(inv: dict) -> bytes:
     foot = pages[-1]
     foot.line(MARGIN, MARGIN + 46, PAGE_W - MARGIN, MARGIN + 46)
     accepts = ", ".join(shop.get("accepts") or ["Cash", "Check"])
-    foot.text(MARGIN, MARGIN + 32, 9, f"Pay by {accepts}", MUTED, bold=True)
+    foot.text(MARGIN, MARGIN + 32, 9, f"HOW TO PAY  ·  {accepts.upper()}", MUTED, bold=True)
     foot.text(MARGIN, MARGIN + 6, 8, "Nothing is charged online. Terms and your signature are on record.",
               MUTED)
     return _pdf(pages)
