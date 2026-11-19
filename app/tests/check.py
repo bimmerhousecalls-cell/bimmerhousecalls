@@ -68,7 +68,12 @@ def unit_checks():
     def questions():
         assert [q["id"] for q in pricing.questions_for(cat, ["stage1-tune"])] == ["tune"]
         assert "sunroof" in [q["id"] for q in pricing.questions_for(cat, ["starlight-headliner"])]
-        assert pricing.questions_for(cat, ["oil-service"]) == []
+        # every job asks the parts question — the customer supplies the parts
+        assert [q["id"] for q in pricing.questions_for(cat, ["oil-service"])] == ["maintparts"]
+        assert [q["id"] for q in pricing.questions_for(cat, ["coilovers"])] == ["lift", "parts"]
+        assert "parts" in [q["id"] for q in pricing.questions_for(cat, ["catback-install"])]
+        assert "cosmetic" in [q["id"] for q in pricing.questions_for(cat, ["grilles"])]
+        # and the server refuses a request that leaves a required one blank
         return "conditional questions ok"
 
     def deposits():
@@ -203,7 +208,8 @@ def live_checks(base: str):
     def full_request():
         body = {"items": ["oil-service"], "lat": 40.0832, "lng": -74.0682,
                 "when": (datetime.now() + timedelta(days=4)).replace(hour=10, minute=0).isoformat(timespec="minutes"),
-                "answers": {}, "consent": True, "acknowledged": True,
+                "answers": {"maintparts": "Yes, I have them"},
+                "consent": True, "acknowledged": True,
                 "signature": {"name": "Check Bot", "image": "data:image/png;base64,iVBORw0KGgo="},
                 "client": {"name": "Check Bot", "email": "check@example.com", "address": "1 Test St",
                            "city": "Brick", "zip": "08724"},
@@ -280,7 +286,8 @@ def live_checks(base: str):
         starts = [x["start"][11:16] for x in a["slots"]]
         assert "07:00" in starts and len(starts) > 8, "every half hour of the day should be offered"
         body = {"items": ["oil-service"], "lat": 40.0832, "lng": -74.0682, "when": date + "T07:00",
-                "answers": {}, "consent": True, "acknowledged": True,
+                "answers": {"maintparts": "Yes, I have them"},
+                "consent": True, "acknowledged": True,
                 "signature": {"name": "Slot Check", "image": "data:image/png;base64,iVBORw0KGgo="},
                 "client": {"name": "Slot Check", "email": "slot2@example.com", "address": "1 A St",
                            "city": "Brick", "zip": "08724"},

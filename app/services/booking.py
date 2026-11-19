@@ -185,7 +185,16 @@ def create_booking(conn, catalog: dict, payload: dict) -> dict:
     vin = veh.pop("vin", "")
     vehicle_id = upsert_vehicle(conn, client_id, vin, **veh)
     when = _parse(payload.get("when"))
-    code = f"BHC-{now().year}-{secrets.randbelow(9000) + 1000}"
+    # a random 4-digit code collides once the table is busy, so keep drawing
+    # until it is free instead of failing the request
+    code = ""
+    for _ in range(40):
+        cand = f"BHC-{now().year}-{secrets.randbelow(9000) + 1000}"
+        if not conn.execute("SELECT 1 FROM bookings WHERE code=?", (cand,)).fetchone():
+            code = cand
+            break
+    if not code:
+        code = f"BHC-{now().year}-{secrets.randbelow(900000) + 100000}"
     quote = build_quote(catalog, payload, when)
     cur = conn.execute(
         "INSERT INTO bookings(code, client_id, vehicle_id, status, scheduled_start, scheduled_end,"

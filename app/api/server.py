@@ -76,11 +76,19 @@ def email_ctx(conn, payload, out, client, start: datetime | None) -> dict:
     }
 
 
+def google_calendar_on() -> bool:
+    """Google Calendar sync is opt-in. The dashboard calendar is the default."""
+    try:
+        return bool((catalog()["shop"].get("calendarSync") or {}).get("google"))
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def _sync_calendar(conn, booking_id: int) -> None:
     """Refresh the Google Calendar event after a booking changes."""
     try:
         from app.services import calendar as cal_mod
-        if not cal_mod.available():
+        if not google_calendar_on() or not cal_mod.available():
             return
         b = conn.execute("SELECT * FROM bookings WHERE id=?", (booking_id,)).fetchone()
         if not b or not b["scheduled_start"]:
@@ -142,6 +150,15 @@ def do_request(body: dict) -> dict:
         raise ValueError("You must agree to the Terms and Conditions before sending the request")
     if not (sig.get("name") and sig.get("image")):
         raise ValueError("A signature is required before sending the request")
+    # the questions the chosen services need must actually be answered — the page
+    # checks this too, but the server is the one that has to be sure
+    answered = body.get("answers") or {}
+    missing = [q["label"] for q in
+               pricing.questions_for(cat, body.get("items") or [], body.get("package"),
+                                     bool(body.get("custom")))
+               if q.get("required") and not str(answered.get(q["id"], "")).strip()]
+    if missing:
+        raise ValueError("Please answer: " + ", ".join(missing))
     with dbmod.db() as conn:
         terms.install_templates(conn, cat)
         tdoc = terms.active_terms(conn)
@@ -205,7 +222,7 @@ def do_request(body: dict) -> dict:
         # put the job on the owner's Google Calendar, colour-coded by category
         try:
             from app.services import calendar as cal_mod
-            if cal_mod.available() and b["scheduled_start"]:
+            if google_calendar_on() and cal_mod.available() and b["scheduled_start"]:
                 ev = cal_mod.create(b, c, v, out["quote"], out["quote"]["lines"])
                 if ev:
                     conn.execute("UPDATE bookings SET calendar_event_id=? WHERE id=?",
@@ -368,7 +385,8 @@ def get_invoice(tok: str) -> dict:  # raises LookupError -> 404
                            "termsVersion": p["terms_version"]} if p else None),
             "terms": {"version": p["terms_version"] if p else "", "body": terms_body},
             "shop": {k: cat["shop"].get(k) for k in ("name", "phone", "email", "baseAddress",
-                                                     "hoursLabel", "accepts", "logo", "theme")},
+                                                     "hoursLabel", "accepts", "logo", "theme",
+                                                     "calendarSync")},
         }
 
 
@@ -583,7 +601,7 @@ def handle_admin(action: str, body: dict) -> dict:
             try:
                 from app.services import calendar as cal_mod
                 ev = conn.execute("SELECT calendar_event_id FROM bookings WHERE id=?", (bid,)).fetchone()
-                if ev and ev["calendar_event_id"]:
+                if google_calendar_on() and ev and ev["calendar_event_id"]:
                     cal_mod.delete(ev["calendar_event_id"])
             except Exception:  # noqa: BLE001
                 pass
@@ -648,6 +666,9 @@ def handle_admin(action: str, body: dict) -> dict:
             return {"sent": True, "number": inv["number"], "to": c["email"]}
         if action == "calendar.sync":
             from app.services import calendar as cal_mod
+            if not google_calendar_on():
+                return {"ok": False, "why": "Google Calendar sync is off. Your dashboard "
+                                            "calendar already shows every booking."}
             if not cal_mod.available():
                 return {"ok": False, "why": "No Google refresh token on the server"}
             sent = 0
@@ -1078,11 +1099,13 @@ class Handler(BaseHTTPRequestHandler):
                         probe = f"{type(exc).__name__}: {exc}"
                 try:
                     from app.services import calendar as cal_mod
-                    cal_on = cal_mod.available()
-                except Exception:  # noqa: BLE001
-                    cal_on = False
+                    cal_state = cal_mod.check()
+                except Exception as exc:  # noqa: BLE001
+                    cal_state = {"problem": str(exc)}
+                cal_on = bool(cal_state.get("calendarOk")) and google_calendar_on()
                 return self._json({"sender": d["sender"], "problem": d["problem"],
                                    "probe": probe, "calendar": cal_on,
+                                   "calendarCheck": cal_state,
                                    "counts": counts, "recent": rows})
             if u.path in ("/api/env-check",):
                 # which BHC_ variables this process can actually see (names only)

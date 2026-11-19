@@ -40,7 +40,9 @@
   textarea{min-height:84px;resize:vertical}
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
   .chips{display:flex;flex-wrap:wrap;gap:8px}
-  .chip{border:1px solid var(--line);border-radius:999px;padding:8px 13px;font-size:13px;cursor:pointer;background:#fff}
+  .chip{border:1px solid var(--line);border-radius:999px;padding:8px 13px;font-size:13px;cursor:pointer;background:#fff;font:inherit;font-size:13px;color:inherit;line-height:1.35;-webkit-appearance:none;appearance:none;touch-action:manipulation}
+  .chip:hover{border-color:#E6BF00}
+  .chip:active{transform:scale(.97)}
   .chip.on{background:#FFFCEB;border-color:#E6BF00;color:#0B0B0D;font-weight:700}
   .qbox{background:#fbfcfe;border:1px dashed #cfd8e3;border-radius:12px;padding:12px 14px;margin-top:12px}
   .qbox .hint{color:var(--mut);font-size:12.5px;margin-top:2px}
@@ -359,7 +361,7 @@ function renderQuestions(qs) {
     let field = '';
     if (q.type === 'choice') {
       field = '<div class="chips">' + q.options.map(o =>
-        '<span class="chip' + (v === o ? ' on' : '') + '" data-q="' + q.id + '" data-v="' + o + '">' + o + '</span>').join('') + '</div>';
+        '<button type="button" class="chip' + (v === o ? ' on' : '') + '" data-q="' + q.id + '" data-v="' + o + '">' + o + '</button>').join('') + '</div>';
     } else if (q.type === 'text') {
       field = '<input data-q="' + q.id + '" value="' + (v || '') + '" placeholder="' + (q.hint || '') + '">';
     } else if (q.type === 'textarea') {
@@ -371,8 +373,18 @@ function renderQuestions(qs) {
       (q.type === 'choice' && q.hint ? '<div class="hint">' + q.hint + '</div>' : '') + '</div>';
   }).join('');
   box.querySelectorAll('[data-q]').forEach(n => {
-    if (n.tagName === 'SPAN') n.onclick = () => { state.answers[n.dataset.q] = n.dataset.v; renderQuestions(qs); };
-    else n.oninput = () => { state.answers[n.dataset.q] = n.value; };   // no redraw while typing
+    if (n.classList.contains('chip')) {
+      const pick = (e) => {
+        e.preventDefault(); e.stopPropagation();
+        state.answers[n.dataset.q] = n.dataset.v;
+        // paint the choice straight away, without rebuilding the box
+        n.parentNode.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c === n));
+        validate();
+      };
+      n.onmousedown = pick;
+      n.onclick = pick;
+    }
+    else n.oninput = () => { state.answers[n.dataset.q] = n.value; validate(); };  // no redraw while typing
   });
 }
 
@@ -455,7 +467,15 @@ function validate() {
              read && agree && named && signed;
   const btn = $('submit');
   btn.disabled = !ok;
-  $('agreeHint').textContent = !read ? 'Tick the terms box.' : !agree ? 'Tick the e-signature box.'
+  // say the first thing still missing, in the order the page asks for it
+  const gaps = need.filter(q => !(state.answers[q.id] || '').toString().trim()).map(q => q.label);
+  $('agreeHint').textContent =
+    gaps.length ? 'Answer: ' + gaps[0] :
+    !p.vehicle.vin || p.vehicle.vin.length !== 17 ? 'Enter the 17-character VIN.' :
+    !p.client.name || p.client.name.trim().length < 2 ? 'Enter your name.' :
+    !p.client.email || !p.client.email.includes('@') ? 'Enter your email.' :
+    !document.getElementById('date').value ? 'Pick a date.' :
+    !read ? 'Tick the terms box.' : !agree ? 'Tick the e-signature box.'
     : !named ? 'Type your legal name.' : !signed ? 'Draw your signature.' : 'Ready — send it.';
 }
 
@@ -490,7 +510,7 @@ async function availability() {
   }
 }
 
-document.addEventListener('input', e => { if (e.target.id !== 'notes') refresh(); });
+document.addEventListener('input', e => { if (e.target.id !== 'notes' && !e.target.dataset.q) refresh(); });
 document.getElementById('date').onchange = () => { availability(); refresh(); };
 document.querySelectorAll('[data-mode]').forEach(m => m.onclick = () => {
   state.custom = m.dataset.mode === 'custom';

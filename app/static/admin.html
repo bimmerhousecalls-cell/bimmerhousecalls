@@ -109,6 +109,10 @@ const API = location.origin.startsWith('http') ? location.origin : '';
 const money = n => '$' + Number(n || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 const when = s => s ? new Date(s).toLocaleString('en-US', {month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'}) : '—';
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+const iso7 = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+// 12-hour, always — the whole app shows 7:30 AM, never 07:30
+const clock = s => { if (!s) return '—'; const d = new Date(s);
+  return d.toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit'}); };
 let KEY = localStorage.getItem('bhc_admin_key') || sessionStorage.getItem('bhc_admin_key') || '';
 let VIEW = 'overview';
 const $ = id => document.getElementById(id);
@@ -184,14 +188,25 @@ async function calendarView(monthOffset) {
     const jobs = byDay[iso] || [];
     cells.push(`<div class="cal-cell${closed ? ' closed' : ''}"><div class="cal-d">${d}${closed ? ' <span class="muted" style="font-size:10px">closed</span>' : ''}</div>
       ${jobs.map(j => `<div class="cal-job ${j.status}" data-id="${j.id}" title="${esc(j.client)} · ${esc(j.code)}">
-        <b>${(j.scheduled_start || '').slice(11, 16)}</b> ${esc(j.client.split(' ')[0])}<div style="font-size:11px;opacity:.8">${esc(j.model || '')}</div></div>`).join('')}
+        <b>${clock(j.scheduled_start)}</b> ${esc(j.client.split(' ')[0])}<div style="font-size:11px;opacity:.8">${esc(j.model || '')}</div></div>`).join('')}
     </div>`);
   }
   const monthName = first.toLocaleString('en-US', {month: 'long', year: 'numeric'});
+  const monthJobs = list.filter(b => b.scheduled_start && b.scheduled_start.slice(0, 7) === iso7(first));
+  const hoursBooked = monthJobs.reduce((t, b) => t + (Number(b.job_hours) || 0), 0);
+  const miles = monthJobs.reduce((t, b) => t + (Number(b.travel_miles) || 0), 0);
+  const fees = monthJobs.reduce((t, b) => t + (Number(b.travel_fee) || 0), 0);
   $('main').innerHTML = `<h1>Calendar</h1>
     <div class="row" style="margin:12px 0">
       <button class="act" id="prevM">←</button><b style="min-width:170px;text-align:center">${monthName}</b>
-      <button class="act" id="nextM">→</button><span class="muted">${esc((window.SHOP || {}).hoursLabel || '')}</span>
+      <button class="act" id="nextM">→</button><button class="act" id="todayM">Today</button>
+      <span class="muted">${esc((window.SHOP || {}).hoursLabel || '')}</span>
+    </div>
+    <div class="row" style="gap:10px;margin-bottom:12px;flex-wrap:wrap">
+      <span class="pill">${monthJobs.length} job${monthJobs.length === 1 ? '' : 's'} this month</span>
+      <span class="pill">${hoursBooked.toFixed(1)} hours booked</span>
+      <span class="pill">${miles.toFixed(0)} mi to drive</span>
+      <span class="pill">${money(fees)} in travel fees</span>
     </div>
     <div class="cal">${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `<div class="cal-head">${d}</div>`).join('')}${cells.join('')}</div>
     <div class="card" style="margin-top:14px"><h2>Upcoming jobs</h2>
@@ -202,6 +217,7 @@ async function calendarView(monthOffset) {
     </div>`;
   $('prevM').onclick = () => calendarView((monthOffset || 0) - 1);
   $('nextM').onclick = () => calendarView((monthOffset || 0) + 1);
+  $('todayM').onclick = () => calendarView(0);
   document.querySelectorAll('.cal-job').forEach(j => j.onclick = () => openBooking(Number(j.dataset.id)));
 }
 
@@ -274,6 +290,25 @@ async function settingsView() {
       <div class="card"><h2>Invoices</h2>
         <div class="muted" style="margin-bottom:10px">Invoices start from the client's estimate, then <b>you</b> set the final numbers — change quantities, prices, add or remove lines, add a note, then email it. Nothing goes out until you send it. Once a payment is recorded an invoice is locked (issue a new one for a change).</div>
         <div id="invoiceList"></div>
+      </div>
+      <div class="card"><h2>Calendar</h2>
+        <div class="muted" style="margin-bottom:10px">Your bookings live on the <b>Calendar</b> tab in this
+          dashboard — month view, colour-coded by status, with the drive time, travel fee and every job's
+          details one click away. Nothing leaves this app unless you turn on Google Calendar below.</div>
+        <div class="row" style="justify-content:space-between;border-bottom:1px solid var(--line);padding:10px 0">
+          <div><b>Dashboard calendar</b><div class="muted">Always on. This is where you work.</div></div>
+          <span class="pill done">On</span>
+        </div>
+        <div class="row" style="justify-content:space-between;padding:10px 0">
+          <div><b>Google Calendar sync</b>
+            <div class="muted">Off. When on, every confirmed booking is also pushed to your Google Calendar,
+              colour-coded by job type.</div></div>
+          <span class="pill ${(s.calendarSync || {}).google ? 'done' : 'quoted'}">
+            ${(s.calendarSync || {}).google ? 'On' : 'Off'}</span>
+        </div>
+        <div class="muted" style="margin-top:8px;font-size:12.5px">To switch it on, set
+          <code>"calendarSync": {"google": true}</code> in <code>data/services.json</code> and add the
+          Calendar permission to your Google token.</div>
       </div>
       <div class="card"><h2>Your records</h2>
         <div class="muted" style="margin-bottom:10px">Every finished job is also written to a folder on disk — <code>work/YYYY-MM/JOB_Client/</code> — with the job sheet, invoices, the signature record (name, time, IP, terms version, document hash) and every email we sent. Nothing lives only in this dashboard.</div>

@@ -106,6 +106,10 @@
       "onPayment": true,
       "onCancel": true,
       "note": "Every website submission is emailed to this address the moment it happens."
+    },
+    "calendarSync": {
+      "google": false,
+      "dashboard": true
     }
   },
   "travel": {

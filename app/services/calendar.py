@@ -63,6 +63,64 @@ def _access_token() -> str | None:
         return None
 
 
+def check() -> dict:
+    """One honest answer about the Google side: does the token work, and can it
+    reach the calendar? Used by /api/diag and the 'am I live?' page."""
+    c = _cfg()
+    out = {"tokenSet": bool(c["refresh"]), "clientId": bool(c["cid"]),
+           "tokenOk": False, "calendarOk": False, "scopes": [], "problem": ""}
+    if not c["refresh"]:
+        out["problem"] = "No BHC_GOOGLE_REFRESH_TOKEN on the server."
+        return out
+    import base64
+    cid, csec = c["cid"], c["csec"]
+    if c["refresh"].startswith("json:") and not cid:
+        try:
+            blob = json.loads(base64.urlsafe_b64decode(c["refresh"][5:] + "===").decode())
+            cid, csec = blob.get("client_id", ""), blob.get("client_secret", "")
+        except Exception:  # noqa: BLE001
+            out["problem"] = "The packed token is not readable."
+            return out
+    if not cid:
+        out["problem"] = "No client id: set BHC_GOOGLE_CLIENT_ID."
+        return out
+    data = urllib.parse.urlencode({"client_id": cid, "client_secret": csec,
+                                   "refresh_token": c["refresh"],
+                                   "grant_type": "refresh_token"}).encode()
+    try:
+        req = urllib.request.Request("https://oauth2.googleapis.com/token", data=data)
+        with urllib.request.urlopen(req, timeout=30) as r:
+            tok = json.loads(r.read())
+        out["tokenOk"] = True
+        out["scopes"] = tok.get("scope", "").split()
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", "replace")[:300]
+        out["problem"] = (f"Token rejected ({exc.code}). "
+                          + ("It expired — mint a new one (7-day limit in Testing mode)."
+                             if exc.code == 400 else detail))
+        return out
+    except Exception as exc:  # noqa: BLE001
+        out["problem"] = f"Could not reach Google: {exc}"
+        return out
+    got = _request("GET", "calendars/primary", None) if False else None  # keep it to one call
+    try:
+        url = ("https://www.googleapis.com/calendar/v3/users/me/calendarList/primary")
+        req = urllib.request.Request(url, headers={
+            "Authorization": f"Bearer {tok['access_token']}"})
+        with urllib.request.urlopen(req, timeout=30) as r:
+            json.loads(r.read())
+        out["calendarOk"] = True
+    except urllib.error.HTTPError as exc:
+        if exc.code == 403:
+            out["problem"] = ("Token works for email but not Calendar — add the "
+                              "calendar.events scope and connect Google again.")
+        else:
+            out["problem"] = f"Calendar call failed ({exc.code})."
+    except Exception as exc:  # noqa: BLE001
+        out["problem"] = f"Calendar call failed: {exc}"
+    return out
+
+
 def available() -> bool:
     return bool(_cfg()["refresh"])
 
