@@ -530,7 +530,12 @@ document.getElementById('submit').onclick = async () => {
   let r, d;
   try {
     r = await fetch(API + '/api/request', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
-    d = await r.json();
+    const raw = await r.text();
+    try { d = JSON.parse(raw); }
+    catch (e) {
+      document.getElementById('err').textContent = 'The server sent back something odd. Try again, or call (732) 890-8458.';
+      btn.disabled = false; btn.textContent = 'Send my request'; return;
+    }
   } catch (e) {
     document.getElementById('err').textContent = 'No connection — check your signal and try again.';
     btn.disabled = false; btn.textContent = 'Send my request'; return;
@@ -539,7 +544,11 @@ document.getElementById('submit').onclick = async () => {
     document.getElementById('err').textContent = why(d);
     btn.disabled = false; btn.textContent = 'Send my request'; return;
   }
-  location.href = new URL(d.links.proposal).pathname;
+  // never trust the server's absolute URL: on a free host it can be the internal
+  // address, which the browser cannot open. Always redirect on our own origin.
+  const target = (d.links && (d.links.proposal || d.links.p)) || '';
+  const path = target ? (target.startsWith('http') ? new URL(target).pathname : target) : '';
+  location.href = path || ('/p/' + (d.proposalToken || ''));
 };
 
 /* ---- terms + signature ---- */

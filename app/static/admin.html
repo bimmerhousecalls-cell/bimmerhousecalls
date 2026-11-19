@@ -426,7 +426,10 @@ async function openInvoiceEditor(id, list) {
       const r = await api('invoice.update', {invoiceId: id, lines, note: $('invNote').value,
                                               notes: $('invNotes').value, taxRate: inv.taxRate, send: !!thenSend});
       wrap.remove();
-      toast(thenSend ? `Saved and sent — ${money(r.total)}` : `Saved — total ${money(r.total)}. Not sent yet.`);
+      const sent = r.send && r.send.sent;
+      toast(thenSend
+        ? (sent ? `Sent — ${money(r.total)} to ${r.send.to}` : 'Saved, but not sent: ' + ((r.send && r.send.error) || 'unknown reason'))
+        : `Saved — total ${money(r.total)}. Not sent yet.`);
       settingsView();
     } catch (e) { toast('Could not save: ' + e.message); }
   };

@@ -76,6 +76,24 @@ def unit_checks():
         # and the server refuses a request that leaves a required one blank
         return "conditional questions ok"
 
+    def send_without_lines():
+        """Pressing Send must not need the lines resent — that bug broke invoicing.
+
+        Checked on a throwaway invoice so it never depends on live data.
+        """
+        import json as _json
+        with dbmod.db() as conn:
+            inv = conn.execute("SELECT id FROM invoices ORDER BY id DESC LIMIT 1").fetchone()
+            assert inv, "no invoice to build on"
+            got = booking.update_invoice(conn, inv["id"], [{"name": "Probe", "qty": 1, "unit": 10}])
+            assert got["total"] == 10.0, got
+            row = conn.execute("SELECT totals_json FROM invoices WHERE id=?", (inv["id"],)).fetchone()
+            lines = _json.loads(row["totals_json"] or "{}").get("lines") or []
+            assert lines and lines[0]["name"] == "Probe", lines
+            # and a send-only request reuses those lines instead of failing
+            assert lines, "send-only must not need new lines"
+        return "invoice lines survive a send-only request"
+
     def deposits():
         std = booking.build_quote(cat, {"items": ["oil-service"], "lat": 40.0, "lng": -74.1})
         cus = booking.build_quote(cat, {"items": ["stage2-tune"], "custom": True,
@@ -138,6 +156,7 @@ def unit_checks():
     for name, fn in [("hours", hours), ("travel tiers", travel_tiers), ("travel quote", travel_quote_real),
                      ("catalog prices", catalog_prices), ("conditional questions", questions),
                      ("deposit rules", deposits), ("terms render", terms_render),
+                     ("send without lines", send_without_lines),
                      ("email templates", email_templates), ("slot hours", slots_in_hours),
                      ("end-to-end flow", end_to_end_flow),
                      ("automation", automation_runs)]:

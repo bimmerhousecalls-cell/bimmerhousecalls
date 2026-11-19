@@ -145,6 +145,12 @@ def do_request(body: dict) -> dict:
         raise ValueError("email is required")
     if len(((body.get("vehicle") or {}).get("vin") or "").strip()) != 17:
         raise ValueError("A 17-character VIN is required for every quote")
+    # a half-typed date must never turn into a booking with no slot
+    if body.get("when"):
+        try:
+            datetime.fromisoformat(str(body["when"]).strip())
+        except (ValueError, TypeError):
+            raise ValueError("Please pick a date and time from the list")
     sig = body.get("signature") or {}
     if not (body.get("acknowledged") and body.get("consent")):
         raise ValueError("You must agree to the Terms and Conditions before sending the request")
@@ -634,7 +640,13 @@ def handle_admin(action: str, body: dict) -> dict:
                             "locked": paid > 0, "link": f"{BASE_URL}/i/{r['public_token']}"})
             return {"invoices": out}
         if action == "invoice.update":
-            res = booking.update_invoice(conn, int(body["invoiceId"]), body.get("lines") or [],
+            # "Send" without touching the numbers must keep the lines that are already there
+            lines_in = body.get("lines")
+            if not lines_in and body.get("send"):
+                cur = conn.execute("SELECT totals_json FROM invoices WHERE id=?",
+                                   (int(body["invoiceId"]),)).fetchone()
+                lines_in = (json.loads(cur["totals_json"] or "{}").get("lines") or []) if cur else []
+            res = booking.update_invoice(conn, int(body["invoiceId"]), lines_in or [],
                                          body.get("note", ""), body.get("taxRate"),
                                          body.get("notes"))
             conn.commit()  # release the write lock before queueing the email
@@ -1116,7 +1128,7 @@ class Handler(BaseHTTPRequestHandler):
             if u.path in ("/api/email-status",):
                 from app.services import mailer as mailer_mod
                 d = mailer_mod.diagnose()
-                return self._json(d, 200 if d["sender"] != "none" else 503)
+                return self._json(d, 200)   # the JSON says what is missing; the page still loads
             if u.path in ("/status", "/health", "/email-status"):
                 from app.services import mailer as mailer_mod
                 d = mailer_mod.diagnose()
@@ -1136,7 +1148,7 @@ class Handler(BaseHTTPRequestHandler):
                         "<p style='color:#5b6470;font-size:13px;margin-top:20px'>"
                         "To fix: add <code>BHC_SMTP_USER</code> and <code>BHC_SMTP_PASS</code> "
                         "(a Gmail app password) in Render → Environment, then redeploy.</p>")
-                return self._file_bytes(html, "text/html; charset=utf-8", 200 if ok else 503)
+                return self._file_bytes(html, "text/html; charset=utf-8", 200)
             if u.path in ("/admin", "/admin/"):
                 return self._file(os.path.join(STATIC, "admin.html"))
             if u.path in ("/book", "/book-now", "/schedule", "/booking", "/booking/"):

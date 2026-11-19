@@ -352,7 +352,8 @@ def update_invoice(conn, invoice_id: int, lines: list[dict] | None = None,
                  (json.dumps(body), invoice_id))
     audit(conn, "invoice.edited", "invoice", invoice_id, json.dumps(clean)[:400])
     return {"invoiceId": invoice_id, "number": inv["number"], "subtotal": subtotal,
-            "tax": tax, "total": total, "amountDue": total, "lines": clean}
+            "tax": tax, "total": total, "amountDue": total, "lines": clean,
+            "status": inv["status"], "notes": body.get("notes", "")}
 
 
 def record_payment(conn, invoice_id: int, amount: float, method: str = "card",
