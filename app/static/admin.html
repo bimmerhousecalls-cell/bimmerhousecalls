@@ -168,21 +168,31 @@ function wireBookings() {
 }
 
 async function calendarView(monthOffset) {
+  const list = (await api('bookings', {status: 'all', limit: 500})).bookings;
   const base = new Date();
   base.setDate(1);
   base.setMonth(base.getMonth() + (monthOffset || 0));
+  // an empty month is confusing: if this one has no jobs, land on the nearest month that does
+  if (!monthOffset) {
+    const has = (d) => list.some(b => (b.scheduled_start || '').slice(0, 7) ===
+      d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'));
+    if (!has(base)) {
+      const next = list.map(b => b.scheduled_start).filter(Boolean).sort()
+        .find(d => d >= new Date().toISOString().slice(0, 10));
+      if (next) base.setTime(new Date(next.slice(0, 7) + '-01T00:00:00').getTime());
+    }
+  }
   const y = base.getFullYear(), m = base.getMonth();
   const first = new Date(y, m, 1);
   const days = new Date(y, m + 1, 0).getDate();
   const startPad = first.getDay();
-  const list = (await api('bookings', {status: 'all', limit: 500})).bookings;
   const byDay = {};
   list.forEach(b => { if (b.scheduled_start) { const d = b.scheduled_start.slice(0, 10); (byDay[d] = byDay[d] || []).push(b); } });
   const hours = (window.SHOP || {}).hours || {};
   const cells = [];
   for (let i = 0; i < startPad; i++) cells.push('<div class="cal-cell empty"></div>');
   for (let d = 1; d <= days; d++) {
-    const iso = new Date(y, m, d).toISOString().slice(0, 10);
+    const iso = y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
     const dow = new Date(y, m, d).getDay();
     const closed = !(hours[String(dow)] || []).length;
     const jobs = byDay[iso] || [];
@@ -209,6 +219,10 @@ async function calendarView(monthOffset) {
       <span class="pill">${money(fees)} in travel fees</span>
     </div>
     <div class="cal">${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `<div class="cal-head">${d}</div>`).join('')}${cells.join('')}</div>
+    ${(() => {
+      const other = list.filter(b => b.scheduled_start && b.scheduled_start.slice(0, 7) !== iso7(first)).length;
+      return other ? `<div class="muted" style="margin-top:8px">${other} job${other === 1 ? '' : 's'} booked in other months — use the arrows.</div>` : '';
+    })()}
     <div class="card" style="margin-top:14px"><h2>Upcoming jobs</h2>
       ${list.filter(b => b.scheduled_start && b.scheduled_start >= new Date().toISOString().slice(0, 10)).sort((a, b) => a.scheduled_start < b.scheduled_start ? -1 : 1).slice(0, 12)
         .map(b => `<div class="row" style="justify-content:space-between;border-bottom:1px solid var(--line);padding:8px 0">
@@ -236,12 +250,17 @@ async function invoicesView() {
   const b = await api('bookings', {status: 'all', limit: 200});
   const rows = b.bookings.filter(x => x.total > 0);
   $('main').innerHTML = `<h1>Invoices</h1>
-    <div class="muted">Every job with money on it. Open a booking to send an invoice or record a payment.</div>
+    <div class="card"><h2>Drafts and sent invoices</h2>
+      <div class="muted" style="margin-bottom:10px">Edit the lines, prices, the work description and the client notes here,
+        then send. A draft stays a draft until you press <b>Send invoice</b>.</div>
+      <div id="invoiceList"></div></div>
+    <div class="muted" style="margin-top:14px">Every job with money on it. Open a booking to send an invoice or record a payment.</div>
     <div class="card" style="margin-top:14px">${rows.length ? `<table><tr><th>Booking</th><th>Client</th><th>Total</th><th>Paid</th><th>Balance</th><th></th></tr>
       ${rows.map(r => `<tr class="click" data-id="${r.id}"><td><b>${esc(r.code)}</b></td><td>${esc(r.client)}</td>
         <td>${money(r.total)}</td><td>${money(r.paid)}</td>
         <td><b style="color:${r.balanceDue > 0 ? '#b25e00' : '#0a7d43'}">${money(r.balanceDue)}</b></td>
         <td><button class="act" data-inv="${r.id}">Send invoice</button></td></tr>`).join('')}</table>` : '<div class="muted">No invoices yet.</div>'}</div>`;
+  invoiceEditor();
   document.querySelectorAll('[data-id]').forEach(r => r.onclick = e => { if (!e.target.dataset.inv) openBooking(Number(r.dataset.id)); });
   document.querySelectorAll('[data-inv]').forEach(btn => btn.onclick = async e => {
     e.stopPropagation();
@@ -289,7 +308,7 @@ async function settingsView() {
     <div class="grid2" style="margin-top:14px">
       <div class="card"><h2>Invoices</h2>
         <div class="muted" style="margin-bottom:10px">Invoices start from the client's estimate, then <b>you</b> set the final numbers — change quantities, prices, add or remove lines, add a note, then email it. Nothing goes out until you send it. Once a payment is recorded an invoice is locked (issue a new one for a change).</div>
-        <div id="invoiceList"></div>
+        <div id="invoiceListSettings"></div>
       </div>
       <div class="card"><h2>Calendar</h2>
         <div class="muted" style="margin-bottom:10px">Your bookings live on the <b>Calendar</b> tab in this
@@ -348,7 +367,7 @@ async function settingsView() {
 }
 
 async function invoiceEditor() {
-  const box = $('invoiceList');
+  const box = $('invoiceList') || $('invoiceListSettings');
   if (!box) return;
   const d = await api('invoices', {});
   const list = d.invoices || (Array.isArray(d) ? d : []);
@@ -370,6 +389,7 @@ async function invoiceEditor() {
       b.textContent = 'Sent';
       toast(`Emailed ${r.number} to ${r.to}`);
       invoiceEditor();
+      if (VIEW === 'invoices') invoicesView();
     } catch (e) { b.disabled = false; b.textContent = 'Send invoice'; toast('Could not send: ' + e.message); }
   });
 }
@@ -378,7 +398,7 @@ async function openInvoiceEditor(id, list) {
   const inv = list.find(x => x.id === id);
   if (!inv) return;
   const lines = (inv.lines || []).map(l => ({name: l.name, qty: l.qty || 1, unit: l.unit || l.total || 0, kind: l.kind || 'service'}));
-  if (!lines.length) lines.push({name: 'Service', qty: 1, unit: inv.amountDue || 0, kind: 'service'});
+  if (!lines.length) lines.push({name: '', qty: 1, unit: 0, kind: 'service'});
   const wrap = document.createElement('div');
   wrap.style.cssText = 'position:fixed;inset:0;background:rgba(11,11,13,.55);z-index:50;overflow:auto;padding:16px';
   wrap.innerHTML = `<div class="card" style="max-width:720px;margin:4vh auto">
@@ -430,7 +450,8 @@ async function openInvoiceEditor(id, list) {
       toast(thenSend
         ? (sent ? `Sent — ${money(r.total)} to ${r.send.to}` : 'Saved, but not sent: ' + ((r.send && r.send.error) || 'unknown reason'))
         : `Saved — total ${money(r.total)}. Not sent yet.`);
-      settingsView();
+      invoiceEditor();
+      if (VIEW === 'invoices') invoicesView(); else settingsView();
     } catch (e) { toast('Could not save: ' + e.message); }
   };
   $('saveInv').onclick = () => save(false);

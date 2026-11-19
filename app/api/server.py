@@ -627,6 +627,23 @@ def handle_admin(action: str, body: dict) -> dict:
             out = []
             for r in rows:
                 t = json.loads(r["totals_json"] or "{}")
+                # an auto-drafted invoice starts from the proposal's estimate, so the
+                # editor always opens with real lines instead of one blank guess
+                if not (t.get("lines") or []):
+                    pr = conn.execute("SELECT lines_json, totals_json FROM proposals"
+                                      " WHERE booking_id=? ORDER BY id DESC LIMIT 1",
+                                      (r["booking_id"],)).fetchone()
+                    if pr:
+                        pl = json.loads(pr["lines_json"] or "[]")
+                        pt = json.loads(pr["totals_json"] or "{}")
+                        t["lines"] = [{"name": l.get("name"), "qty": l.get("qty", 1),
+                                       "unit": l.get("unit") if l.get("unit") is not None
+                                               else l.get("total", 0),
+                                       "kind": l.get("kind", "service")} for l in pl]
+                        t.setdefault("total", pt.get("total"))
+                        t.setdefault("amountDue", pt.get("total"))
+                        t.setdefault("subtotal", pt.get("subtotal"))
+                        t.setdefault("taxRate", 0)
                 paid = conn.execute("SELECT COALESCE(SUM(amount),0) s FROM payments WHERE invoice_id=?",
                                     (r["id"],)).fetchone()["s"]
                 out.append({"id": r["id"], "number": r["number"], "status": r["status"],

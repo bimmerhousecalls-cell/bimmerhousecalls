@@ -84,7 +84,24 @@ def unit_checks():
         import json as _json
         with dbmod.db() as conn:
             inv = conn.execute("SELECT id FROM invoices ORDER BY id DESC LIMIT 1").fetchone()
-            assert inv, "no invoice to build on"
+            if not inv:
+                # a clean database has no invoices yet — build the fixture this test needs
+                from app.services import booking as _bk, pricing as _pr
+                cat = _pr.load_catalog()
+                cid = _bk.upsert_client(conn, name="Probe Client", email="probe@example.com")
+                vid = _bk.upsert_vehicle(conn, cid, "WBA3A5C55CF256789", model="335i")
+                quote = _bk.build_quote(cat, {"items": ["oil-service"], "lat": 40.08, "lng": -74.06})
+                made = _bk.create_invoice(conn, 1, None, "balance") if False else None
+                cur = conn.execute("INSERT INTO bookings(code, client_id, vehicle_id, status)"
+                                   " VALUES (?,?,?,?)", ("BHC-PROBE-1", cid, vid, "quoted"))
+                bid = cur.lastrowid
+                tok = _bk.token()
+                conn.execute("INSERT INTO invoices(booking_id, number, status, totals_json, public_token, due_at)"
+                             " VALUES (?,?,?,?,?,?)",
+                             (bid, "INV-PROBE-1", "draft", _json.dumps({"lines": [], "amountDue": 0}),
+                              tok, "2026-12-01"))
+                conn.commit()
+                inv = conn.execute("SELECT id FROM invoices WHERE number='INV-PROBE-1'").fetchone()
             got = booking.update_invoice(conn, inv["id"], [{"name": "Probe", "qty": 1, "unit": 10}])
             assert got["total"] == 10.0, got
             row = conn.execute("SELECT totals_json FROM invoices WHERE id=?", (inv["id"],)).fetchone()
