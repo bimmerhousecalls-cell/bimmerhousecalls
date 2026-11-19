@@ -76,6 +76,32 @@ def email_ctx(conn, payload, out, client, start: datetime | None) -> dict:
     }
 
 
+def _sync_calendar(conn, booking_id: int) -> None:
+    """Refresh the Google Calendar event after a booking changes."""
+    try:
+        from app.services import calendar as cal_mod
+        if not cal_mod.available():
+            return
+        b = conn.execute("SELECT * FROM bookings WHERE id=?", (booking_id,)).fetchone()
+        if not b or not b["scheduled_start"]:
+            return
+        c = conn.execute("SELECT * FROM clients WHERE id=?", (b["client_id"],)).fetchone()
+        v = conn.execute("SELECT * FROM vehicles WHERE id=?", (b["vehicle_id"],)).fetchone()
+        p = conn.execute("SELECT * FROM proposals WHERE booking_id=? ORDER BY id DESC LIMIT 1",
+                         (booking_id,)).fetchone()
+        quote = {"lines": json.loads(p["lines_json"]) if p else [],
+                 "shop": catalog()["shop"], "categories": []}
+        payload = {"lines": quote["lines"], "shop": quote["shop"]}
+        if b["calendar_event_id"]:
+            cal_mod.update(b["calendar_event_id"], b, c, v, payload, quote["lines"])
+        else:
+            ev = cal_mod.create(b, c, v, payload, quote["lines"])
+            if ev:
+                conn.execute("UPDATE bookings SET calendar_event_id=? WHERE id=?", (ev, booking_id))
+    except Exception:  # noqa: BLE001
+        pass
+
+
 def notify_owner(conn, template: str, ctx: dict, booking_id: int | None = None) -> None:
     """Every new request / signature / payment also lands in the owner's inbox."""
     shop = catalog()["shop"]
@@ -176,6 +202,16 @@ def do_request(body: dict) -> dict:
         emails.cancel_pending(conn, out["bookingId"], ["proposal_reminder"])
         notify_owner(conn, "owner_signed", {**ctx2, "client": body["client"].get("name", ""),
                                             "code": out["code"]}, out["bookingId"])
+        # put the job on the owner's Google Calendar, colour-coded by category
+        try:
+            from app.services import calendar as cal_mod
+            if cal_mod.available() and b["scheduled_start"]:
+                ev = cal_mod.create(b, c, v, out["quote"], out["quote"]["lines"])
+                if ev:
+                    conn.execute("UPDATE bookings SET calendar_event_id=? WHERE id=?",
+                                 (ev, out["bookingId"]))
+        except Exception:  # noqa: BLE001 - never block a booking on the calendar
+            pass
         out["depositInvoice"] = ({"number": inv["number"], "amountDue": inv["amountDue"],
                                   "status": "draft",
                                   "link": f"{BASE_URL}/i/{inv['publicToken']}"} if inv else None)
@@ -327,6 +363,8 @@ def get_invoice(tok: str) -> dict:  # raises LookupError -> 404
             "signature": ({"name": p["signature_name"], "image": p["signature_image"],
                            "signedAt": p["signed_at"], "ip": p["signature_ip"],
                            "hash": p["signed_hash"], "proposal": p["number"],
+                           "notes": (json.loads(i["totals_json"] or "{}").get("notes") or ""),
+                           "jobTitle": (json.loads(i["totals_json"] or "{}").get("note") or ""),
                            "termsVersion": p["terms_version"]} if p else None),
             "terms": {"version": p["terms_version"] if p else "", "body": terms_body},
             "shop": {k: cat["shop"].get(k) for k in ("name", "phone", "email", "baseAddress",
@@ -531,6 +569,7 @@ def handle_admin(action: str, body: dict) -> dict:
                          {"first_name": b["name"].split()[0], "vehicle": b["model"] or "BMW",
                           "date": start.strftime("%A %b %d"), "time": start.strftime("%I:%M %p").lstrip("0")}, bid)
             booking.audit(conn, "booking.rescheduled", "booking", bid, body["scheduledStart"], "owner")
+            _sync_calendar(conn, bid)
             return {"ok": True, "scheduled_start": start.isoformat(timespec="minutes")}
         if action == "cancel":
             bid = int(body["bookingId"])
@@ -541,6 +580,13 @@ def handle_admin(action: str, body: dict) -> dict:
             emails.queue(conn, b["email"], "cancellation",
                          {"first_name": b["name"].split()[0], "code": b["code"]}, bid)
             booking.audit(conn, "booking.cancelled", "booking", bid, b["code"], "owner")
+            try:
+                from app.services import calendar as cal_mod
+                ev = conn.execute("SELECT calendar_event_id FROM bookings WHERE id=?", (bid,)).fetchone()
+                if ev and ev["calendar_event_id"]:
+                    cal_mod.delete(ev["calendar_event_id"])
+            except Exception:  # noqa: BLE001
+                pass
             return {"ok": True}
         if action == "proposal.manual":   # owner builds/edits a proposal for a booking
             bid = int(body["bookingId"])
@@ -565,12 +611,14 @@ def handle_admin(action: str, body: dict) -> dict:
                             "amountDue": t.get("amountDue", 0), "total": t.get("total", 0),
                             "taxRate": t.get("taxRate", 0), "note": t.get("note", ""),
                             "lines": t.get("lines") or [], "paid": paid,
+                            "notes": t.get("notes", ""),
                             "draft": r["status"] == "draft",
                             "locked": paid > 0, "link": f"{BASE_URL}/i/{r['public_token']}"})
             return {"invoices": out}
         if action == "invoice.update":
             res = booking.update_invoice(conn, int(body["invoiceId"]), body.get("lines") or [],
-                                         body.get("note", ""), body.get("taxRate"))
+                                         body.get("note", ""), body.get("taxRate"),
+                                         body.get("notes"))
             conn.commit()  # release the write lock before queueing the email
             if body.get("send"):
                 # "Save & send" in one step: price it your way, then email it
@@ -598,6 +646,19 @@ def handle_admin(action: str, body: dict) -> dict:
             conn.execute("UPDATE invoices SET status=CASE WHEN status='draft' THEN 'open' ELSE status END WHERE id=?",
                          (inv["id"],))
             return {"sent": True, "number": inv["number"], "to": c["email"]}
+        if action == "calendar.sync":
+            from app.services import calendar as cal_mod
+            if not cal_mod.available():
+                return {"ok": False, "why": "No Google refresh token on the server"}
+            sent = 0
+            rows = dbmod.rows(conn.execute(
+                "SELECT id FROM bookings WHERE scheduled_start IS NOT NULL"
+                " AND status NOT IN ('cancelled') AND calendar_event_id IS NULL"))
+            for r in rows:
+                _sync_calendar(conn, r["id"])
+                sent += 1
+            conn.commit()
+            return {"ok": True, "added": sent}
         if action == "email.flush":
             from app.services import mailer as mailer_mod
             return mailer_mod.drain(limit=int((body or {}).get("limit", 50)))
@@ -712,7 +773,7 @@ Email **{email}** or call **{phone}** to:
 ## Security
 
 Access to your information is limited to the owner of {shop}. Payment card
-numbers are never stored — we take payment by Zelle, cash or check.
+numbers are never stored — we take payment by cash or check.
 
 ## Contact
 
@@ -1015,8 +1076,14 @@ class Handler(BaseHTTPRequestHandler):
                         probe = "send OK"
                     except Exception as exc:  # noqa: BLE001
                         probe = f"{type(exc).__name__}: {exc}"
+                try:
+                    from app.services import calendar as cal_mod
+                    cal_on = cal_mod.available()
+                except Exception:  # noqa: BLE001
+                    cal_on = False
                 return self._json({"sender": d["sender"], "problem": d["problem"],
-                                   "probe": probe, "counts": counts, "recent": rows})
+                                   "probe": probe, "calendar": cal_on,
+                                   "counts": counts, "recent": rows})
             if u.path in ("/api/env-check",):
                 # which BHC_ variables this process can actually see (names only)
                 names = sorted(k for k in os.environ if k.startswith("BHC_"))

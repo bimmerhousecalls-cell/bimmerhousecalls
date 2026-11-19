@@ -38,10 +38,67 @@ SUBJECTS = {
 }
 
 
+BRAND_INK = "#0B0B0D"
+BRAND_YELLOW = "#FFD400"
+
+
+def _shell(body: str, shop: dict, footer_note: str = "") -> str:
+    """One consistent look for every email: yellow rule, readable type, quiet footer."""
+    safe_name = shop.get("name", "Bimmer House Calls")
+    phone = shop.get("phone", "")
+    email = shop.get("email", "")
+    logo = (shop.get("logo") or {}).get("card") or (shop.get("logo") or {}).get("file") or ""
+    base = os.environ.get("BHC_BASE_URL", "").rstrip("/")
+    logo_html = (f'<img src="{base}{logo}" alt="{safe_name}" height="34" '
+                 f'style="display:block;height:34px;width:auto;border:0">' if logo and base else
+                 f'<b style="font-size:17px;letter-spacing:.3px">{safe_name}</b>')
+    paras = "".join(
+        f'<p style="margin:0 0 14px">{line}</p>' for line in body.strip().split("\n\n") if line.strip())
+    return f"""<!doctype html><html><body style="margin:0;padding:0;background:#f4f5f7">
+<div style="background:#f4f5f7;padding:26px 14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;border-collapse:collapse">
+    <tr><td style="background:{BRAND_INK};border-radius:14px 14px 0 0;padding:18px 24px">
+      {logo_html}
+    </td></tr>
+    <tr><td style="height:4px;background:{BRAND_YELLOW};font-size:0;line-height:0">&nbsp;</td></tr>
+    <tr><td style="background:#ffffff;padding:26px 24px;border:1px solid #e5e8ec;border-top:0;
+                   font-size:15px;line-height:1.62;color:{BRAND_INK}">
+      {paras}
+    </td></tr>
+    <tr><td style="background:#ffffff;border:1px solid #e5e8ec;border-top:0;border-radius:0 0 14px 14px;
+                   padding:16px 24px;font-size:12.5px;line-height:1.55;color:#5b6470">
+      {footer_note}
+      <div style="margin-top:6px"><b style="color:{BRAND_INK}">{safe_name}</b> · Mobile BMW service &amp; performance</div>
+      <div>{phone} · {email}</div>
+      <div style="margin-top:8px;color:#8a929c">You are getting this because you booked service with us.
+      Reply to this email any time and a real person answers.</div>
+    </td></tr>
+  </table>
+</div></body></html>"""
+
+
 def render(template: str, ctx: dict) -> tuple[str, str]:
     subject = SUBJECTS.get(template, "Bimmer House Calls").format(**ctx)
     body = TEMPLATES.get(template, "").format(**ctx)
-    return subject, body
+    shop = ctx.get("shop") or {}
+    if not shop:
+        try:
+            from app.services import pricing
+            shop = pricing.load_catalog()["shop"]
+        except Exception:  # noqa: BLE001
+            shop = {}
+    # make links clickable and keep the plain-text version readable
+    import re as _re
+    html_body = _re.sub(r"(https?://[^\s<]+)", r'<a href="\1" style="color:#0B0B0D;font-weight:600">\1</a>', body)
+    html_body = html_body.replace("\n", "<br>")
+    note = ""
+    cta = ctx.get("cta_link") or ""
+    if cta:
+        note = (f'<div style="margin-bottom:10px"><a href="{cta}" '
+                f'style="display:inline-block;background:{BRAND_YELLOW};color:{BRAND_INK};'
+                f'text-decoration:none;font-weight:700;padding:11px 20px;border-radius:9px">'
+                f'{ctx.get("cta_label", "Open your invoice")}</a></div>')
+    return subject, _shell(html_body, shop, note)
 
 
 BASE = """Bimmer House Calls · Mobile BMW service & performance
@@ -114,7 +171,7 @@ Here is invoice {invoice} for ${amount}, for the work on your {vehicle}:
 
 {link}
 
-Open it any time — it shows every line, the labor price, the terms you signed and your signature. Pay with Zelle, cash, or a check when the work is done. Nothing is charged online.
+Open it any time — it shows every line, the labor price, the terms you signed and your signature. Pay by cash or check when the work is done. Nothing is charged online.
 
 — Bimmer House Calls
 """,
@@ -163,7 +220,7 @@ Invoice {invoice} — ${amount} due.
 {summary}
 
 Pay here: {link}
-Card, Apple Pay, or Google Pay. Cash, Zelle, or check on site works too.
+Cash or check on site. Nothing is charged online.
 
 — Bimmer House Calls
 """,
@@ -234,12 +291,22 @@ same slots on the calendar again? Reply "yes" and I'll send the plan.
 
 def queue(conn, to_email: str, template: str, ctx: dict, booking_id: int | None = None,
           when: datetime | None = None) -> int:
+    # invoice emails: attach a PDF copy so the client has it without opening a link
+    ctx = {**ctx}
+    if template in ("invoice_sent", "invoice_manual", "deposit_request") and not ctx.get("attach"):
+        try:
+            tok = (ctx.get("link") or "").rsplit("/", 1)[-1]
+            if tok:
+                from app.services import invoice_pdf
+                ctx["attach"] = invoice_pdf.render(tok)
+        except Exception:  # noqa: BLE001 - a missing attachment must not stop the email
+            pass
     subject, body = render(template, ctx)
     cur = conn.execute(
-        "INSERT INTO emails(to_email, subject, body, template, booking_id, status, scheduled_for)"
-        " VALUES (?,?,?,?,?,?,?)",
+        "INSERT INTO emails(to_email, subject, body, template, booking_id, status, scheduled_for, attachment)"
+        " VALUES (?,?,?,?,?,?,?,?)",
         (to_email, subject, body, template, booking_id, "queued",
-         (when or datetime.now()).isoformat(timespec="minutes")))
+         (when or datetime.now()).isoformat(timespec="minutes"), ctx.get("attach") or ""))
     eid = cur.lastrowid
     # free hosts have no cron: send it a few seconds from now, after this commits
     if when is None:

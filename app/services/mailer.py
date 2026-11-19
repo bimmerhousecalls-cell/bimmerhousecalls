@@ -41,7 +41,7 @@ def _connector_send(to: str, subject: str, body: str) -> bool:
     return bridge_send(to, subject, body)
 
 
-def _smtp_send(to: str, subject: str, body: str) -> bool:
+def _smtp_send(to: str, subject: str, body: str, attachment: str = "") -> bool:
     """Send through Gmail over HTTPS (port 443), which no host blocks.
 
     Render's free tier has no outbound SMTP, so ports 587/465 fail with
@@ -75,6 +75,13 @@ def _smtp_send(to: str, subject: str, body: str) -> bool:
     msg["Subject"] = subject
     msg.set_content(plain)
     msg.add_alternative(html, subtype="html")
+    if attachment and os.path.exists(attachment):
+        import mimetypes
+        ctype, _ = mimetypes.guess_type(attachment)
+        maintype, _, subtype = (ctype or "application/pdf").partition("/")
+        with open(attachment, "rb") as fh:
+            msg.add_attachment(fh.read(), maintype=maintype, subtype=subtype,
+                               filename=os.path.basename(attachment))
     raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
 
     # OAuth refresh token first (the reliable path), then the app password
@@ -137,12 +144,12 @@ def _smtp_send(to: str, subject: str, body: str) -> bool:
         return True
 
 
-def send_now(to: str, subject: str, body: str) -> str:
+def send_now(to: str, subject: str, body: str, attachment: str = "") -> str:
     """Try the connector, then SMTP; report which path worked."""
     if _connector_send(to, subject, body):
         return "gmail-connector"
     try:
-        if _smtp_send(to, subject, body):
+        if _smtp_send(to, subject, body, attachment):
             return "gmail-api"
     except Exception as exc:  # noqa: BLE001
         raise RuntimeError(f"Gmail send failed: {type(exc).__name__}: {exc}") from None
@@ -263,7 +270,11 @@ def drain(limit: int = 50, dry_run: bool = False) -> dict:
                 log.append({"to": row["to_email"], "subject": row["subject"]})
                 continue
             try:
-                how = send_now(row["to_email"], row["subject"], row["body"])
+                try:
+                    att = row["attachment"] or ""
+                except (IndexError, KeyError):
+                    att = ""
+                how = send_now(row["to_email"], row["subject"], row["body"], att)
                 if how == "queued":
                     log.append({"to": row["to_email"], "subject": row["subject"], "status": "no-sender"})
                     failed += 1

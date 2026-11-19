@@ -300,7 +300,8 @@ def catalog_shop_parts_excluded() -> bool:
 
 
 def update_invoice(conn, invoice_id: int, lines: list[dict] | None = None,
-                   note: str = "", tax_rate: float | None = None) -> dict:
+                   note: str = "", tax_rate: float | None = None,
+                   notes: str | None = None) -> dict:
     """Edit an invoice before it is paid: change quantities, prices, add or drop lines.
 
     The proposal's estimate is only the starting point — the owner's final invoice is
@@ -330,11 +331,15 @@ def update_invoice(conn, invoice_id: int, lines: list[dict] | None = None,
         rate = 0.0
     tax = round(subtotal * rate, 2)
     total = round(subtotal + tax, 2)
+    # the owner may add a notes block: anything they want the client to read
+    if notes is not None:
+        body["notes"] = (notes or "").strip()
     body.update({"lines": clean, "subtotal": subtotal, "taxRate": rate, "tax": tax,
                  "total": total, "amountDue": total, "balance": total,
                  "note": note or body.get("note", ""), "editedBy": "owner",
                  "editedAt": now().isoformat(timespec="seconds")})
-    conn.execute("UPDATE invoices SET totals_json=?, status='open' WHERE id=?",
+    # editing never changes whether it has been sent — only "Send invoice" does that
+    conn.execute("UPDATE invoices SET totals_json=? WHERE id=?",
                  (json.dumps(body), invoice_id))
     audit(conn, "invoice.edited", "invoice", invoice_id, json.dumps(clean)[:400])
     return {"invoiceId": invoice_id, "number": inv["number"], "subtotal": subtotal,

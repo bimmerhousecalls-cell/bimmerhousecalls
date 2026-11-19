@@ -59,11 +59,13 @@
     "hoursLabel": "Mon–Thu 7am–5pm · Fri–Sat 6am–3pm · Sunday closed",
     "slotMinutes": 150,
     "accepts": [
-      "Credit / debit card",
       "Cash",
-      "Zelle",
       "Check"
     ],
+    "payTo": {
+      "paypal": "bimmerhousecalls@gmail.com",
+      "venmo": "@bimmerhousecalls"
+    },
     "termsEffectiveDate": "2026-01-01",
     "termsContactCounty": "Ocean County",
     "quoteValidDays": 7,

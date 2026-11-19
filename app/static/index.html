@@ -348,6 +348,11 @@ function renderItems() {
 function renderQuestions(qs) {
   const card = document.getElementById('questionsCard'), box = document.getElementById('questions');
   if (!qs.length) { card.hidden = true; return; }
+  // Rebuilding the fields on every quote refresh would steal the cursor mid-sentence.
+  // Redraw only when the questions themselves changed.
+  const sig = qs.map(q => q.id + ':' + q.type + ':' + (q.label || '')).join('|');
+  if (box.dataset.sig === sig && !card.hidden) return;
+  box.dataset.sig = sig;
   card.hidden = false;
   box.innerHTML = qs.map(q => {
     const v = state.answers[q.id];
@@ -367,7 +372,7 @@ function renderQuestions(qs) {
   }).join('');
   box.querySelectorAll('[data-q]').forEach(n => {
     if (n.tagName === 'SPAN') n.onclick = () => { state.answers[n.dataset.q] = n.dataset.v; renderQuestions(qs); };
-    else n.oninput = n.onchange = () => { state.answers[n.dataset.q] = n.value; };
+    else n.oninput = () => { state.answers[n.dataset.q] = n.value; };   // no redraw while typing
   });
 }
 

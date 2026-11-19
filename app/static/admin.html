@@ -354,8 +354,10 @@ async function openInvoiceEditor(id, list) {
       <button class="act" id="addLine">+ Add line</button>
       <span class="muted">Subtotal <b id="sub">$0</b> · tax ${((inv.taxRate || 0) * 100).toFixed(3)}% <b id="tax">$0</b> · total <b id="tot">$0</b></span>
     </div>
-    <label>Note to the client (optional)</label>
-    <input id="invNote" value="${esc(inv.note || '')}" placeholder="Parts came in higher, added a second hour of labor…">
+    <label>Description of the work (shown as the job title on the invoice)</label>
+    <input id="invNote" value="${esc(inv.note || '')}" placeholder="Oil service, brake fluid flush, cabin filter">
+    <label style="margin-top:10px">Notes for the client (optional — appears in its own box on the invoice)</label>
+    <textarea id="invNotes" rows="3" placeholder="Example: your front pads are at 3mm, worth watching. Next service due at 62,000 miles.">${esc(inv.notes || '')}</textarea>
     <div class="row" style="gap:8px;margin-top:12px">
       <button class="act primary" id="saveInv">Save</button>
       <button class="act" id="saveSend">Save &amp; email it</button>
@@ -386,7 +388,8 @@ async function openInvoiceEditor(id, list) {
   $('closeInv').onclick = () => wrap.remove();
   const save = async (thenSend) => {
     try {
-      const r = await api('invoice.update', {invoiceId: id, lines, note: $('invNote').value, taxRate: inv.taxRate, send: !!thenSend});
+      const r = await api('invoice.update', {invoiceId: id, lines, note: $('invNote').value,
+                                              notes: $('invNotes').value, taxRate: inv.taxRate, send: !!thenSend});
       wrap.remove();
       toast(thenSend ? `Saved and sent — ${money(r.total)}` : `Saved — total ${money(r.total)}. Not sent yet.`);
       settingsView();
@@ -455,7 +458,7 @@ async function openBooking(id, tab) {
       <div class="row">
         <select id="pInv">${(d.invoices || []).map(i => `<option value="${i.id}">${esc(i.number)} · ${money(i.totals.amountDue)}</option>`).join('')}</select>
         <input id="pAmt" type="number" step="0.01" placeholder="Amount" style="width:120px">
-        <select id="pMethod"><option>card</option><option>cash</option><option>zelle</option><option>check</option></select>
+        <select id="pMethod"><option>cash</option><option>check</option><option>paypal</option><option>venmo</option></select>
         <button class="act primary" id="pBtn">Record</button>
       </div>
       <div id="pMsg" class="muted" style="margin-top:8px"></div>

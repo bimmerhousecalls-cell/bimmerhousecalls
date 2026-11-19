@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS bookings (
   travel_json TEXT,
   job_hours REAL,
   request_json TEXT,       -- what they asked for, raw
+  calendar_event_id TEXT,  -- the Google Calendar event, so reschedule updates it
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT
 );
@@ -118,7 +119,7 @@ CREATE TABLE IF NOT EXISTS payments (
   invoice_id INTEGER REFERENCES invoices(id) ON DELETE CASCADE,
   amount REAL NOT NULL,
   kind TEXT DEFAULT 'deposit',   -- deposit | balance | payment
-  method TEXT,                    -- card | cash | zelle | check | other
+  method TEXT,                    -- paypal | venmo | cash | check | other
   processor TEXT,                 -- stripe | paypal | manual
   processor_ref TEXT,
   received_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -135,6 +136,7 @@ CREATE TABLE IF NOT EXISTS emails (
   status TEXT NOT NULL DEFAULT 'queued',  -- queued | sent | failed | skipped
   error TEXT,
   scheduled_for TEXT,
+  attachment TEXT,          -- a PDF to attach (the invoice)
   sent_at TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -180,7 +182,20 @@ def db() -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys=ON")
     conn.executescript(SCHEMA)   # idempotent: every statement is IF NOT EXISTS
+    _ensure_columns(conn)
     return conn
+
+
+def _ensure_columns(conn: sqlite3.Connection) -> None:
+    """Add columns introduced after a database was first created."""
+    wanted = {"bookings": {"calendar_event_id": "TEXT"},
+              "emails": {"attachment": "TEXT"}}
+    for table, cols in wanted.items():
+        have = {r[1] for r in conn.execute(f"PRAGMA table_info({table})")}
+        for name, decl in cols.items():
+            if name not in have:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {decl}")
+    conn.commit()
 
 
 def init(path: str | None = None) -> None:

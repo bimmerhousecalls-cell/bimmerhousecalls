@@ -147,10 +147,10 @@ fetch('/api/i/' + TOKEN).then(r => r.json()).then(d => {
       <h2>Amount due</h2>
       <div class="big">${money(dueNow)}</div>
       <div class="ways">
-        ${(shop.accepts || ['Zelle', 'Cash', 'Check']).map(w => `<div class="way"><b>${esc(w)}</b></div>`).join('')}
+        ${(shop.accepts || ['Cash', 'Check']).map(w => `<div class="way"><b>${esc(w)}</b></div>`).join('')}
       </div>
       <div class="muted" style="color:#9aa3ae;margin-top:12px;font-size:13px">
-        Send Zelle to ${esc(shop.email)} or pay on site. Your invoice updates the moment a payment is recorded.
+        Pay on site when the work is done. Your invoice updates the moment a payment is recorded.
       </div>
     </div>
 
@@ -160,8 +160,12 @@ fetch('/api/i/' + TOKEN).then(r => r.json()).then(d => {
         <div class="k">Vehicle</div><div>${esc(d.vehicle.year || '')} ${esc(d.vehicle.model || 'BMW')}</div>
         <div class="k">VIN</div><div style="font-family:ui-monospace,Consolas,monospace">${esc(d.vehicle.vin)}</div>
       </div>
-      ${workRows ? `<h2 style="margin-top:18px">The work</h2><div class="kv">${workRows}</div>` : ''}
+      ${d.jobTitle ? `<h2 style="margin-top:18px">The work</h2><div style="margin-top:4px">${esc(d.jobTitle)}</div>` : ''}
+      ${workRows ? `<h2 style="margin-top:18px">Details</h2><div class="kv">${workRows}</div>` : ''}
     </div>
+
+    ${d.notes ? `<div class="card" style="border-left:4px solid #FFD400"><h2>Notes</h2>
+      <div style="white-space:pre-wrap;line-height:1.6">${esc(d.notes)}</div></div>` : ''}
 
     <div class="card">
       <h2>Services &amp; price</h2>

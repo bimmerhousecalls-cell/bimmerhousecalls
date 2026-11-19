@@ -159,7 +159,7 @@ def render_terms(catalog: dict) -> str:
         quote_valid_days=s.get("quoteValidDays", 7),
         hours_label=s.get("hoursLabel", "Mon–Thu 7am–5pm · Fri–Sat 6am–3pm"),
         late_start_minutes=15,
-        accepts=", ".join(s.get("accepts") or ["credit and debit cards", "cash", "Zelle"]),
+        accepts=", ".join(s.get("accepts") or ["cash", "check"]),
         late_fee_percent=s.get("lateFeePercent", 1.5),
         cancel_hours=s.get("cancelHours", 24),
         labor_warranty_days=s.get("laborWarrantyDays", 30),
